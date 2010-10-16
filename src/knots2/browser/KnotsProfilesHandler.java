@@ -1,28 +1,33 @@
 package knots2.browser;
 
+
+import java.io.CharArrayWriter;
+import java.util.Vector;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-
-public class ExampleHandler extends DefaultHandler{
+public class KnotsProfilesHandler extends DefaultHandler{
 
 	// ===========================================================
 	// Fields
 	// ===========================================================
 	
-	private itemCount = 0;
-	private totalPages = 0;
-	private currentPage = 0;
+	private Profile currentItem;
 	
-	private ParsedExampleDataSet myParsedExampleDataSet = new ParsedExampleDataSet();
+	private Vector<Profile> itemList = new Vector<Profile>();
 
+	// Buffer for collecting data from
+    // the "characters" SAX event.
+    private CharArrayWriter contents = new CharArrayWriter();
+	
 	// ===========================================================
 	// Getter & Setter
 	// ===========================================================
 
-	public ParsedExampleDataSet getParsedData() {
-		return this.myParsedExampleDataSet;
+	public Vector<Profile> getParsedData() {
+		return this.itemList;
 	}
 
 	// ===========================================================
@@ -30,7 +35,7 @@ public class ExampleHandler extends DefaultHandler{
 	// ===========================================================
 	@Override
 	public void startDocument() throws SAXException {
-		this.myParsedExampleDataSet = new ParsedExampleDataSet();
+		itemList = new Vector<Profile>();
 	}
 
 	@Override
@@ -45,18 +50,14 @@ public class ExampleHandler extends DefaultHandler{
 	@Override
 	public void startElement(String namespaceURI, String localName,
 			String qName, Attributes atts) throws SAXException {
-		if (localName.equals("outertag")) {
-			this.in_outertag = true;
-		}else if (localName.equals("innertag")) {
-			this.in_innertag = true;
-		}else if (localName.equals("mytag")) {
-			this.in_mytag = true;
-		}else if (localName.equals("tagwithnumber")) {
-			// Extract an Attribute
-			String attrValue = atts.getValue("thenumber");
-			int i = Integer.parseInt(attrValue);
-			myParsedExampleDataSet.setExtractedInt(i);
+		
+		contents.reset();
+		
+		if( localName.equals("item")) {
+			currentItem = new Profile();
+			itemList.add(currentItem);		
 		}
+		
 	}
 	
 	/** Gets be called on closing tags like: 
@@ -64,23 +65,22 @@ public class ExampleHandler extends DefaultHandler{
 	@Override
 	public void endElement(String namespaceURI, String localName, String qName)
 			throws SAXException {
-		if (localName.equals("outertag")) {
-			this.in_outertag = false;
-		}else if (localName.equals("innertag")) {
-			this.in_innertag = false;
-		}else if (localName.equals("mytag")) {
-			this.in_mytag = false;
-		}else if (localName.equals("tagwithnumber")) {
-			// Nothing to do here
+		
+		if (localName.equals("id")) {
+			currentItem.setId( contents.toString());
+		} else if( localName.equals("video_format")) {
+			currentItem.setCodec(contents.toString());
+		} else if( localName.equals("video_bitrate")) {
+			currentItem.setBitrate(contents.toString());
+		} else if( localName.equals("name")) {
+			currentItem.setName(contents.toString());			
 		}
 	}
 	
 	/** Gets be called on the following structure: 
 	 * <tag>characters</tag> */
 	@Override
-    public void characters(char ch[], int start, int length) {
-		if(this.in_mytag){
-    		myParsedExampleDataSet.setExtractedString(new String(ch, start, length));
+    public void characters(char ch[], int start, int length) {		
+		contents.write(ch, start, length);
     	}
     }
-}

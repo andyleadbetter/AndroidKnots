@@ -2,4 +2,7 @@
 <resources>
     <string name="hello">Hello World, Knots!</string>
     <string name="app_name">Knots2</string>
+<string name="choose_profile">Choose Profile</string>
+<string name="quit">Quit</string>
+<string name="profiles_menu">Profile</string>
 </resources>
