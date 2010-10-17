@@ -7,6 +7,8 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import android.net.NetworkInfo.State;
+
 public class KnotsListHandler extends DefaultHandler{
 
 	// ===========================================================
@@ -31,6 +33,8 @@ public class KnotsListHandler extends DefaultHandler{
     	Finished
     };
     
+    private CurrentState status;
+    
     
     
 
@@ -48,11 +52,13 @@ public class KnotsListHandler extends DefaultHandler{
 	@Override
 	public void startDocument() throws SAXException {
 		itemList = new Vector<KnotsItem>();
+		status = CurrentState.Idle;
 	}
 
 	@Override
 	public void endDocument() throws SAXException {
 		// Nothing to do
+		status = CurrentState.Finished;
 	}
 
 	/** Gets be called on opening tags like: 
@@ -67,9 +73,13 @@ public class KnotsListHandler extends DefaultHandler{
 		
 		if( localName.equals("item")) {
 			currentItem = new KnotsItem();
-			itemList.add(currentItem);		
+			itemList.add(currentItem);
+			status = CurrentState.ParsingItem;
 		} else if( localName.equals("pages")) {
 			currentPage = new KnotsPage();		
+			status = CurrentState.ParsingPage;
+		} else if( localName.equals("items")) {
+			status = CurrentState.ParsingItems;
 		}
 		
 	}
@@ -80,17 +90,37 @@ public class KnotsListHandler extends DefaultHandler{
 	public void endElement(String namespaceURI, String localName, String qName)
 			throws SAXException {
 		
-		if (localName.equals("dirname")) {
-			currentItem.setDirectoryNameId(contents.toString());
-		}else if (localName.equals("dir")) {
-			currentItem.setDirectoryId(contents.toString());
-		}else if (localName.equals("id")) {
-			currentItem.setId(contents.toString());
-		}else if (localName.equals("current")) {
-			currentPage.setCurrentPage(Integer.parseInt(contents.toString().trim()));
-		}else if (localName.equals("total")) {
-			currentPage.setTotalPages(Integer.parseInt(contents.toString().trim()));
-		}
+		if( status == CurrentState.ParsingItem ) {
+			
+			if (localName.equals("dir")) {
+				currentItem.setDirectoryId(contents.toString());
+			}else if (localName.equals("id")) {
+				currentItem.setId(contents.toString());
+			}else if (localName.equals("mediatype")) {
+				currentItem.setMediaType(contents.toString());
+			}else if (localName.equals("mid")) {
+				currentItem.setMid(contents.toString());
+			}
+		
+			// While parsing the item element, add each field to the hash table, its used later when fetching media from server.
+			if(!localName.equals("item")) {
+				// Store this data to the item hash fields.
+				currentItem.getFields().put(localName, contents.toString());	
+			}
+			
+			//if this is the end of the item element, then call retrieveData to pull info about this item
+			if( localName.equals("item") ) {
+				currentItem.retrieveData();
+			}
+			
+						
+		} else if( status == CurrentState.ParsingPage ) {
+			if (localName.equals("current")) {
+					currentPage.setCurrentPage(Integer.parseInt(contents.toString().trim()));
+			}else if (localName.equals("total")) {
+					currentPage.setTotalPages(Integer.parseInt(contents.toString().trim()));
+			}
+		}		
 	}
 	
 	/** Gets be called on the following structure: 

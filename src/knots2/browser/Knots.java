@@ -1,7 +1,5 @@
 package knots2.browser;
 
-
-
 import java.net.URL;
 import java.util.Iterator;
 import java.util.Vector;
@@ -13,12 +11,16 @@ import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SubMenu;
-import android.widget.TextView;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.AdapterView.OnItemClickListener;
 
 
 public class Knots extends Activity {
@@ -26,25 +28,66 @@ public class Knots extends Activity {
 	private Vector<Profile> profiles;
 	private Vector<KnotsItem> items;
 	private int currentProfile = 6;
-	private static final int PROFILES_GROUP = 1;
+	private static final int PROFILES_GROUP = 1;	
+	private static Knots instance;
+    ImageLoader imageLoader;
+    ListView list;
+    LazyAdapter adapter;
 
+    public Knots() {
+        instance = this;	        
+    }
+
+    public static Context getContext() {
+        return instance.getApplicationContext();
+    }
+    
+	public static Knots getKnots() {
+		return instance;
+	}
+    
 	/** Called when the activity is first created. */
 	@Override
-	public void onCreate(Bundle icicle) {
-		super.onCreate(icicle);
+	public void onCreate(Bundle savedInstanceState) {
 
-		/* Create a new TextView to display the parsingresult later. */
-		TextView tv = new TextView(this);
-
-		/* Display the TextView. */
-		this.setContentView(tv);
-		
-		/* now try to get available profiles */
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
+        
+        imageLoader =new ImageLoader(getApplicationContext());
+        
+        /* now try to get available profiles */
 		profiles = loadProfiles();
 		
 		/* Get root Directory */
-		items = loadDirectory( "/" );
+		items = loadDirectory( "" );
+		
+	    list=(ListView)findViewById(R.id.list);
+	    adapter=new LazyAdapter(this, items);
+	    list.setAdapter(adapter);	
+	    list.setOnItemClickListener(listener);
+
 	}
+	
+	public OnItemClickListener listener=new OnItemClickListener() {
+
+		@Override
+		public void onItemClick(AdapterView<?> parent, View view,
+		        int position, long id) {
+
+			LazyAdapter.ViewHolder vh = (LazyAdapter.ViewHolder)view.getTag();
+			vh.item.itemSelected();
+			
+		}
+
+    };
+    
+    
+	public void browseByPath( String pathToBrowse )
+	{
+		items = loadDirectory(pathToBrowse);		
+	}
+	
+	
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {		
@@ -84,10 +127,12 @@ public class Knots extends Activity {
 		try {
 			
 			// this is the base path to pull items from
-			String externalPath = new String("http://192.168.0.28:1979/external/browse?format=xml");
+			String externalPath = Knots.getContext().getString( R.string.server ) + "/external/browse?format=xml";
 			
-			// Add the new sub tree to the URL
-			externalPath = externalPath + "&path=" + pathToLoad;
+			// Add the new sub tree to the URL, the root path is fetched with empty Path
+			if( pathToLoad != "" ) {
+				externalPath += "&path=" + pathToLoad;
+			}
 			
 			/* Create a URL we want to load some xml-data from. */
 			URL url = new URL( externalPath );
@@ -125,7 +170,7 @@ public class Knots extends Activity {
 		
 		try {
 			/* Create a URL we want to load some xml-data from. */
-			URL url = new URL("http://192.168.0.28:1979/external/transcoding_profiles");
+			URL url = new URL(Knots.getContext().getString( R.string.server ) + "/external/transcoding_profiles");
 
 			/* Get a SAXParser from the SAXPArserFactory. */
 			SAXParserFactory spf = SAXParserFactory.newInstance();
