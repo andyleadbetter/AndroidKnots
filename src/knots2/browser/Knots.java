@@ -1,39 +1,52 @@
 package knots2.browser;
 
 import java.net.URL;
+import java.util.EmptyStackException;
 import java.util.Iterator;
+import java.util.Stack;
 import java.util.Vector;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import android.app.Activity;
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.MediaController;
+import android.widget.VideoView;
 import android.widget.AdapterView.OnItemClickListener;
 
 
 public class Knots extends Activity {
 
-	private Vector<Profile> profiles;
-	private Vector<KnotsItem> items;
+	private Vector<Profile> profiles;	
 	private int currentProfile = 6;
 	private static final int PROFILES_GROUP = 1;	
 	private static Knots instance;
     ImageLoader imageLoader;
     ListView list;
     LazyAdapter adapter;
-
+    Stack<String> paths;
+    String currentPath;
+    String playerId;    
+    
     public Knots() {
         instance = this;	        
     }
@@ -45,7 +58,13 @@ public class Knots extends Activity {
 	public static Knots getKnots() {
 		return instance;
 	}
-    
+
+	@Override
+	public void onDestroy() {		
+		stopVideo();
+		super.onDestroy();
+	}
+	
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -55,17 +74,20 @@ public class Knots extends Activity {
         
         imageLoader =new ImageLoader(getApplicationContext());
         
+        paths = new Stack<String>();
+                
         /* now try to get available profiles */
 		profiles = loadProfiles();
 		
-		/* Get root Directory */
-		items = loadDirectory( "" );
-		
 	    list=(ListView)findViewById(R.id.list);
-	    adapter=new LazyAdapter(this, items);
+	    adapter=new LazyAdapter(this);
 	    list.setAdapter(adapter);	
 	    list.setOnItemClickListener(listener);
-
+		
+	    browseByPath("");
+	    
+	    Button b=(Button)findViewById(R.id.goback);
+	    b.setOnClickListener(btnListener);
 	}
 	
 	public OnItemClickListener listener=new OnItemClickListener() {
@@ -75,19 +97,18 @@ public class Knots extends Activity {
 		        int position, long id) {
 
 			LazyAdapter.ViewHolder vh = (LazyAdapter.ViewHolder)view.getTag();
-			vh.item.itemSelected();
-			
+			vh.item.itemSelected();			
 		}
-
     };
     
-    
 	public void browseByPath( String pathToBrowse )
-	{
-		items = loadDirectory(pathToBrowse);		
+	{		
+		paths.push(currentPath);
+		currentPath = pathToBrowse;
+		loadDirectory(pathToBrowse);
+		
 	}
-	
-	
+		
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {		
@@ -115,14 +136,27 @@ public class Knots extends Activity {
 				break;
 			}			
 		}
-		
-		
 		return true;
 	}
+    
+	public OnClickListener btnListener=new OnClickListener(){
+        @Override
+        public void onClick(View arg0) {
+        	try {
+        		currentPath = paths.pop();
+        	}
+        	catch(EmptyStackException e)
+        	{
+        		currentPath="";
+        	}
+        		
+    		loadDirectory(currentPath);
+        }
+    };
 	
-	private Vector<KnotsItem> loadDirectory( String pathToLoad ) {
+	private void loadDirectory( String pathToLoad ) {
 
-		Vector<KnotsItem> items = null;
+		adapter.clear();
 		
 		try {
 			
@@ -145,23 +179,19 @@ public class Knots extends Activity {
 			XMLReader xr = sp.getXMLReader();
 			/* Create a new ContentHandler and apply it to the XML-Reader*/ 
 			KnotsListHandler myExampleHandler = new KnotsListHandler();
+			myExampleHandler.setListAdapter( adapter );
 			xr.setContentHandler(myExampleHandler);
 
 			/* Parse the xml-data from our URL. */
 			xr.parse(new InputSource(url.openStream()));
 			/* Parsing has finished. */
 
-			/* Our KnotsListHandler now provides the parsed data to us. */
-			items = myExampleHandler.getParsedData();
-
 		} 
 		
 		catch (Exception e) {
 			/* Display any Error to the GUI. */						
 		}	
-		
-		return items;
-		
+				
 	}
 
 	private Vector<Profile> loadProfiles() {
@@ -216,5 +246,49 @@ public class Knots extends Activity {
 	private void setCurrentProfile( MenuItem item ) {	
 		currentProfile = item.getItemId();				
 	}
+
+	public void playVideo(String mid) {
+			
+		HttpClient client = new DefaultHttpClient();
+		HttpGet method = new HttpGet(Knots.getContext().getString( R.string.server ) + "/external/play?profile=" + Integer.toString(currentProfile) +"&id=" + mid);
+		String txtResult = new String();
+        try{
+            HttpResponse response = client.execute(method);
+            txtResult = HttpHelper.request(response);     
+            playerId = txtResult.split(":")[0];
+        
+            setContentView(R.layout.videoview);
+            MediaController mc = (MediaController) findViewById(R.id.mediacontrollerid);
+            VideoView videoView = (VideoView) findViewById(R.id.videoviewid);
+            
+            mc.setAnchorView(videoView);
+            Uri video = Uri.parse("rtsp://192.168.0.28:8080/stream.sdp");
+            videoView.setMediaController(mc);
+            videoView.setVideoURI(video);
+            videoView.start();
+	            
+        }catch(Exception ex){
+            txtResult = "Failed!";
+        }
+        
+	}
 	
+
+	public void stopVideo( )
+	    {
+		/* Create a URL we want to load some xml-data from. */
+		if( playerId != null ) {
+			/* Create a URL we want to load some xml-data from. */		
+			HttpClient client = new DefaultHttpClient();
+			HttpGet method = new HttpGet(Knots.getContext().getString( R.string.server ) + "/root/stop?id=" + playerId );
+			String txtResult = new String();
+			try{
+				HttpResponse response = client.execute(method);
+				txtResult = HttpHelper.request(response);
+	            setContentView(R.layout.main);
+			}catch(Exception ex){
+				txtResult = "Failed!";
+			}
+		}
+	}	
 }

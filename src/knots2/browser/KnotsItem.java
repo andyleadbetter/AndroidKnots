@@ -25,17 +25,14 @@ import android.graphics.drawable.Drawable;
 public class KnotsItem {
 
 	
-	enum ItemType {
-		UNINITIALIZED,
-		CATEGORY,
-		TAG,
-		VALUE,
-		ITEM,
-		DIR,
-		VIRTUAL,
-		SERVER,
-		BUTTON
-	};
+	public static final int CATEGORY = 0;
+	public static final int TAG = 1;
+	public static final int VALUE = 2;
+	public static final int ITEM = 3;
+	public static final int DIR = 4;
+	public static final int VIRTUAL = 5;
+	public static final int SERVER = 6;
+	public static final int BUTTON = 7;
 	
 	
 	/**
@@ -45,14 +42,13 @@ public class KnotsItem {
 	private String id;
 	private String directoryId;
 	private String text;
-	private ItemType type;
+	private int type;
 	private Drawable itemImage;
 	private Hashtable<String,String> fields;
 	private String mediaType;
 	private int intId;
 	
 	public KnotsItem() {
-		type = ItemType.UNINITIALIZED;
 		fields = new Hashtable<String, String>();		
 	}
 	
@@ -90,51 +86,26 @@ public class KnotsItem {
 	}
 	
 	
-	public synchronized ItemType getType() {
+	public synchronized int getType() {
 		
-		if( type == ItemType.UNINITIALIZED ) {
-							
-			Set<String> keys = fields.keySet();
-			
-			for (String key : keys ) {
-				
-				if( key == "virtual" ) {
-					type = ItemType.VIRTUAL;					
-				}else if( key == "category" ) {
-					type = ItemType.CATEGORY;
-				}else if( key == "tag" ) {
-					type = ItemType.TAG;
-				}else if( key == "value" ) {
-					type = ItemType.VALUE;
-				}else if( key == "dirname") {
-					type = ItemType.DIR;
-				}else if( key == "server" ) {
-					type = ItemType.SERVER;
-				}else if( key == "button" ) {
-					type = ItemType.BUTTON;
-				}
-
-				if( type != ItemType.UNINITIALIZED ) {
-					text = fields.get(key);
-					break;			
-				}				
+		String[] types = {"category", "tag", "value", "name", "dirname", "virtual", "server", "button"};
+		for (int i = 0; i < types.length; i++)
+		{
+			if (fields.keySet().contains(types[types.length - 1 - i]))
+			{
+				text = (String)fields.get(types[types.length - 1 - i]);
+				type = types.length - 1 - i;
+				break;
 			}
-			
-			if( type==ItemType.UNINITIALIZED ) {
-				type = ItemType.ITEM;
-				text = fields.get("name");
-			}				
 		}
-		
 		return type;
 	}
 	
-	private synchronized void setType() {
-		ItemType calculatedType = getType();
-	}
+	
 	public synchronized Drawable getItemImage() {
 		return itemImage;
 	}
+	
 	public synchronized void setItemImage() {
 		if( itemImage == null )
 		{		
@@ -144,22 +115,17 @@ public class KnotsItem {
 					String url = new String( Knots.getContext().getString(R.string.server) + "/root/resource_file?type=screenshot&mid=" + mid + "&mediatype=0" );
 					InputStream is = (InputStream) new URL(url).getContent();
 					itemImage = Drawable.createFromStream(is, "src name");		    
-				}
-				else {
-					switch( type ) {
-					case DIR:
+				} else {
+					if( type == DIR ) {
 						itemImage = Knots.getContext().getResources().getDrawable(R.drawable.knots_dir);
-						break;
-					case SERVER:
+					} else if ( type == SERVER ) {
 						itemImage = Knots.getContext().getResources().getDrawable(R.drawable.knots_item_server);
-						break;
-					case ITEM:
+					} else if (type == ITEM) {
 						if( mediaType == null || mediaType == "1" )
 							itemImage =  Knots.getContext().getResources().getDrawable(R.drawable.knots_item_video);
 						else
 							itemImage =  Knots.getContext().getResources().getDrawable(R.drawable.knots_item_music);	
-						break;
-					}
+					}				
 				}
 
 			}catch (Exception e) {
@@ -176,7 +142,7 @@ public class KnotsItem {
 	}
 	
 	public void retrieveData() {
-		setType();	
+		int local_type = getType();
 		setItemImage();
 	}
 
@@ -196,7 +162,7 @@ public class KnotsItem {
 				//knots.get_browser().show_virtual_category(get_item_attribute("search"), 1);
 				break;
 		case ITEM:
-				//knots.get_info().show_info(this);
+				Knots.getKnots().playVideo(id);
 				break;				
 		}
 	}

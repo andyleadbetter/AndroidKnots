@@ -17,9 +17,9 @@ public class LazyAdapter extends BaseAdapter {
     private Vector<KnotsItem> data;
     private static LayoutInflater inflater=null;
     
-    public LazyAdapter(Activity a, Vector<KnotsItem> d) {
+    public LazyAdapter(Activity a) {
         activity = a;
-        data=d;
+        data = new Vector<KnotsItem>();        
         inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
@@ -31,6 +31,16 @@ public class LazyAdapter extends BaseAdapter {
         return position;
     }
 
+    public void addItem( KnotsItem newItem ) {
+    	data.add(newItem);
+    	notifyDataSetChanged();
+    }
+    
+    public void clear() {
+    	data.clear();
+    	notifyDataSetChanged();
+    }
+    
     public long getItemId(int position) {
         return position;
     }
@@ -39,6 +49,11 @@ public class LazyAdapter extends BaseAdapter {
         public TextView text;
         public ImageView image;
         public KnotsItem item;
+    }
+    
+    @Override
+    public boolean hasStableIds(){
+    	return false;    	
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {

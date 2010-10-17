@@ -1,13 +1,10 @@
 package knots2.browser;
 
 import java.io.CharArrayWriter;
-import java.util.Vector;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import android.net.NetworkInfo.State;
 
 public class KnotsListHandler extends DefaultHandler{
 
@@ -17,9 +14,8 @@ public class KnotsListHandler extends DefaultHandler{
 	
 	private KnotsItem currentItem;
 	private KnotsPage currentPage;
+	private LazyAdapter listAdapter;
 	
-	private Vector<KnotsItem> itemList = new Vector<KnotsItem>();
-
 	// Buffer for collecting data from
     // the "characters" SAX event.
     private CharArrayWriter contents = new CharArrayWriter();
@@ -35,24 +31,21 @@ public class KnotsListHandler extends DefaultHandler{
     
     private CurrentState status;
     
-    
-    
 
-	// ===========================================================
-	// Getter & Setter
-	// ===========================================================
-
-	public Vector<KnotsItem> getParsedData() {
-		return this.itemList;
+	public void setListAdapter(LazyAdapter adapter) {
+		listAdapter = adapter;
 	}
+    
+
+
 
 	// ===========================================================
 	// Methods
 	// ===========================================================
 	@Override
 	public void startDocument() throws SAXException {
-		itemList = new Vector<KnotsItem>();
 		status = CurrentState.Idle;
+		
 	}
 
 	@Override
@@ -73,7 +66,6 @@ public class KnotsListHandler extends DefaultHandler{
 		
 		if( localName.equals("item")) {
 			currentItem = new KnotsItem();
-			itemList.add(currentItem);
 			status = CurrentState.ParsingItem;
 		} else if( localName.equals("pages")) {
 			currentPage = new KnotsPage();		
@@ -111,6 +103,7 @@ public class KnotsListHandler extends DefaultHandler{
 			//if this is the end of the item element, then call retrieveData to pull info about this item
 			if( localName.equals("item") ) {
 				currentItem.retrieveData();
+				listAdapter.addItem(currentItem);
 			}
 			
 						
@@ -129,4 +122,5 @@ public class KnotsListHandler extends DefaultHandler{
     public void characters(char ch[], int start, int length) {		
 		contents.write(ch, start, length);
     	}
+
     }

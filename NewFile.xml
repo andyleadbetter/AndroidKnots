@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+	<items>
+		<item>
+			<id>1</id>
+			<name><![CDATA[Magnum_Force]]></name>
+			<path><![CDATA[/mnt/windows/Users/Public/Videos/Dirty Harry Movies/Magnum Force/Magnum_Force.jpg]]></path>
+			<size>5405</size>
+			<duration><![CDATA[00:00:00]]></duration>
+			<added><![CDATA[2010-09-12]]></added>
+			<modified><![CDATA[2006-07-27]]></modified>
+			<views>18</views>
+			<position><![CDATA[00:00:00]]></position>
+			<rating>0</rating>
+			<info />
+			<last_viewed />
+			<directory_changed>2010-06-01T21:28:27+01:00</directory_changed>
+			<video_format><![CDATA[mjpeg]]></video_format>
+			<audio_format><![CDATA[tbr]]></audio_format>
+			<audio_bitrate><![CDATA[]]>
+			</audio_bitrate>
+			<aspect><![CDATA[50:67]]></aspect>
+			<width>100</width>
+			<height>134</height>
+			<category>3</category>
+			<active>1</active>
+			<mediatype>8</mediatype>
+			<params />
+			<dreambox_url />
+			<tracks />
+			<mid>12</mid>
+		</item>
+		<item>
+			<id>2</id>
+			<name><![CDATA[VIDEO_TS_Title_01_01]]></name>
+			<path><![CDATA[/mnt/windows/Users/Public/Videos/Dirty Harry Movies/Magnum Force/VIDEO_TS_Title_01_01.avi]]></path>
+			<size>1414714592</size>
+			<duration><![CDATA[01:57:33]]></duration>
+			<added><![CDATA[2010-09-12]]></added>
+			<modified><![CDATA[2006-07-23]]></modified>
+			<views>28</views>
+			<position><![CDATA[00:00:00]]></position>
+			<rating>0</rating>
+			<info />
+			<last_viewed />
+			<directory_changed>2010-06-01T21:28:27+01:00</directory_changed>
+			<video_format><![CDATA[mpeg4]]></video_format>
+			<audio_format><![CDATA[tbr]]></audio_format>
+			<audio_bitrate><![CDATA[2 channels]]></audio_bitrate>
+			<aspect><![CDATA[20:9]]></aspect>
+			<width>720</width>
+			<height>576</height>
+			<category>1</category>
+			<active>1</active>
+			<mediatype>0</mediatype>
+			<params />
+			<dreambox_url />
+			<tracks />
+			<mid>13</mid>
+		</item>
+	</items>
+	<pages>
+		<current>1</current>
+		<total>1</total>
+	</pages>
+</root>
