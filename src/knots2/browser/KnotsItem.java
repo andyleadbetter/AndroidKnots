@@ -8,6 +8,9 @@ import java.net.URL;
 import java.util.Hashtable;
 import java.util.Set;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 
 /**
@@ -47,8 +50,11 @@ public class KnotsItem {
 	private Hashtable<String,String> fields;
 	private String mediaType;
 	private int intId;
+	private Context mContext;
 	
-	public KnotsItem() {
+	
+	public KnotsItem(Context context) {
+		mContext = context; 
 		fields = new Hashtable<String, String>();		
 	}
 	
@@ -112,20 +118,23 @@ public class KnotsItem {
 			try
 			{
 				if( !( mid == null ) ){		
-					String url = new String( Knots.getContext().getString(R.string.server) + "/root/resource_file?type=screenshot&mid=" + mid + "&mediatype=0" );
+					String url = new String(  "http://192.168.0.28:1978/root/resource_file?type=screenshot&mid=" + mid + "&mediatype=0" );
 					InputStream is = (InputStream) new URL(url).getContent();
 					itemImage = Drawable.createFromStream(is, "src name");		    
 				} else {
+					
 					if( type == DIR ) {
-						itemImage = Knots.getContext().getResources().getDrawable(R.drawable.knots_dir);
+						itemImage = mContext.getResources().getDrawable(R.drawable.knots_dir);
 					} else if ( type == SERVER ) {
-						itemImage = Knots.getContext().getResources().getDrawable(R.drawable.knots_item_server);
+						itemImage = mContext.getResources().getDrawable(R.drawable.knots_item_server);
 					} else if (type == ITEM) {
 						if( mediaType == null || mediaType == "1" )
-							itemImage =  Knots.getContext().getResources().getDrawable(R.drawable.knots_item_video);
+							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_video);
 						else
-							itemImage =  Knots.getContext().getResources().getDrawable(R.drawable.knots_item_music);	
-					}				
+							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_music);	
+							
+					}		
+							
 				}
 
 			}catch (Exception e) {
@@ -146,8 +155,11 @@ public class KnotsItem {
 		setItemImage();
 	}
 
-	public void itemSelected()
+	public Intent itemSelected()
 	{
+		Intent nextIntent = new Intent();
+		nextIntent.setAction(Intent.ACTION_VIEW);
+		
 		switch( type ) {
 		case SERVER:
 				/*
@@ -156,14 +168,21 @@ public class KnotsItem {
 				 * */
 			break;
 		case DIR:
-				Knots.getKnots().browseByPath(fields.get("dir"));
+			nextIntent.putExtra("path", fields.get("dir"));				
+			nextIntent.putExtra("action", "browse");
+			
+
+			
 				break;
 		case VIRTUAL:
 				//knots.get_browser().show_virtual_category(get_item_attribute("search"), 1);
 				break;
-		case ITEM:
-				Knots.getKnots().playVideo(id);
+		case ITEM:								
+				nextIntent.putExtra("media", getMid());				
+				nextIntent.putExtra("action", "play");
 				break;				
 		}
+		return nextIntent;
+		
 	}
 }

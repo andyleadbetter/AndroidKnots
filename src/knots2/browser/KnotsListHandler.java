@@ -14,7 +14,7 @@ public class KnotsListHandler extends DefaultHandler{
 	
 	private KnotsItem currentItem;
 	private KnotsPage currentPage;
-	private LazyAdapter listAdapter;
+	private KnotsAdapter listAdapter;
 	
 	// Buffer for collecting data from
     // the "characters" SAX event.
@@ -32,7 +32,7 @@ public class KnotsListHandler extends DefaultHandler{
     private CurrentState status;
     
 
-	public void setListAdapter(LazyAdapter adapter) {
+	public void setListAdapter(KnotsAdapter adapter) {
 		listAdapter = adapter;
 	}
     
@@ -65,7 +65,7 @@ public class KnotsListHandler extends DefaultHandler{
 		contents.reset();
 		
 		if( localName.equals("item")) {
-			currentItem = new KnotsItem();
+			currentItem = new KnotsItem(listAdapter.getActivity().getApplicationContext());
 			status = CurrentState.ParsingItem;
 		} else if( localName.equals("pages")) {
 			currentPage = new KnotsPage();		
@@ -103,6 +103,7 @@ public class KnotsListHandler extends DefaultHandler{
 			//if this is the end of the item element, then call retrieveData to pull info about this item
 			if( localName.equals("item") ) {
 				currentItem.retrieveData();
+				
 				listAdapter.addItem(currentItem);
 			}
 			

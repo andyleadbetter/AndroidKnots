@@ -11,13 +11,20 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class LazyAdapter extends BaseAdapter {
+public class KnotsAdapter extends BaseAdapter {
     
     private Activity activity;
-    private Vector<KnotsItem> data;
+    /**
+	 * @return the activity
+	 */
+	public Activity getActivity() {
+		return activity;
+	}
+
+	private Vector<KnotsItem> data;
     private static LayoutInflater inflater=null;
     
-    public LazyAdapter(Activity a) {
+    public KnotsAdapter(Activity a) {
         activity = a;
         data = new Vector<KnotsItem>();        
         inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
