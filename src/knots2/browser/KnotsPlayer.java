@@ -19,6 +19,7 @@ import org.xml.sax.XMLReader;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ListView;
@@ -36,13 +37,11 @@ public class KnotsPlayer extends Activity {
 	
 	
 	@Override
-	public void onDestroy() {				
-		super.onDestroy();
+	public void onDestroy() {						
 	}
 	
 	@Override
-	public void onStop() {
-		stopPlayer();
+	public void onStop() {		
 	}
 
 	/** Called when the activity is first created. */
@@ -117,18 +116,26 @@ public class KnotsPlayer extends Activity {
 			HttpGet method = new HttpGet(application.getApplicationContext().getString( R.string.server ) + "/external/play?profile=" + Integer.toString(4) +"&id=" + application.getMedia());
 			HttpClient client = new DefaultHttpClient();
 			String txtResult = new String();
+			
+			
+			
 		
 			HttpResponse response = client.execute(method);
-			txtResult = HttpHelper.request(response);     
+			txtResult = HttpHelper.request(response);
+			txtResult = txtResult.substring(0, txtResult.length() - 12 );
+			
 			application.setPlayerId(txtResult.split(":")[0]);
 			application.setPassword(txtResult.split(":")[1]);
 			
 			getPlayerProperties();
 			
-			mc.setKeepScreenOn(true);
-			videoView.setMediaController(mc);
-			videoView.setVideoURI(playerProperties.get_streamUrl());
-			videoView.start();
+			Uri mediaStream = Uri.parse("rtsp://192.168.0.28:8080/stream.sdp");
+			
+			Intent intent = new Intent(Intent.ACTION_VIEW);
+			intent.setData(mediaStream);
+			startActivity(intent);
+
+
 			
 		}
 		catch (Exception e) {
