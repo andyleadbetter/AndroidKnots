@@ -1,8 +1,9 @@
 package knots2.browser;
 
+import java.io.CharArrayWriter;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
-import java.io.CharArrayWriter;
 import org.xml.sax.helpers.DefaultHandler;
 
 import android.net.Uri;

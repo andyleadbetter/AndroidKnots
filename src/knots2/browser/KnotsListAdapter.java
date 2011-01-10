@@ -11,7 +11,9 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class KnotsAdapter extends BaseAdapter {
+public class KnotsListAdapter extends BaseAdapter {
+	
+	private ImageLoader mImageLoader;
     
     private Activity activity;
     /**
@@ -24,10 +26,11 @@ public class KnotsAdapter extends BaseAdapter {
 	private Vector<KnotsItem> data;
     private static LayoutInflater inflater=null;
     
-    public KnotsAdapter(Activity a) {
+    public KnotsListAdapter(Activity a, ImageLoader asyncLoader ) {
         activity = a;
         data = new Vector<KnotsItem>();        
         inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mImageLoader = asyncLoader;
     }
 
     public int getCount() {
@@ -77,11 +80,19 @@ public class KnotsAdapter extends BaseAdapter {
         }
         else
             holder=(ViewHolder)vi.getTag();
+
+        if( item.getType() == KnotsItem.VIRTUAL )
+        {
+        	holder.image.getResources().getDrawable(R.drawable.knots_dir);
+        }
+        else if( ( item.getType() == KnotsItem.ITEM ) && item.getItemImage() != null) {
+        	holder.image.setTag(item.getItemImage());
+        	mImageLoader.DisplayImage(item.getItemImage(), activity, holder.image);	
+        }
         
-        holder.text.setText(item.getText());        
-        holder.image.setImageDrawable(item.getItemImage());
+        holder.text.setText(item.getFields().get("title"));        
         holder.item = item;
-        
+                
         return vi;
     }
 }

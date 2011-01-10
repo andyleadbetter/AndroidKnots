@@ -1,46 +1,49 @@
 package knots2.browser;
 
-
 import java.io.CharArrayWriter;
-import java.util.Vector;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-public class KnotsProfilesHandler extends DefaultHandler{
+
+/** 
+ * Sax Parser for ORB XML API.
+ */
+
+
+public class KnotsStreamHandler extends DefaultHandler{
 
 	// ===========================================================
 	// Fields
 	// ===========================================================
+
+	String mUri = "";
 	
-	private Profile currentItem;
+	/**
+	 * @return the status
+	 */
 	
-	private Vector<Profile> itemList = new Vector<Profile>();
+	public String getUri() {
+		// TODO Auto-generated method stub
+		return mUri;
+	}
 
 	// Buffer for collecting data from
-    // the "characters" SAX event.
-    private CharArrayWriter contents = new CharArrayWriter();
-	
-	// ===========================================================
-	// Getter & Setter
-	// ===========================================================
-
-	public Vector<Profile> getParsedData() {
-		return this.itemList;
-	}
+	// the "characters" SAX event.
+	private CharArrayWriter contents = new CharArrayWriter();
 
 	// ===========================================================
 	// Methods
 	// ===========================================================
 	@Override
 	public void startDocument() throws SAXException {
-		itemList = new Vector<Profile>();
 	}
 
 	@Override
 	public void endDocument() throws SAXException {
 		// Nothing to do
+		
 	}
 
 	/** Gets be called on opening tags like: 
@@ -50,37 +53,29 @@ public class KnotsProfilesHandler extends DefaultHandler{
 	@Override
 	public void startElement(String namespaceURI, String localName,
 			String qName, Attributes atts) throws SAXException {
-		
+
 		contents.reset();
-		
-		if( localName.equals("item")) {
-			currentItem = new Profile();
-			itemList.add(currentItem);		
+		if (localName.equals("item")) {
+			mUri = atts.getValue(0);
 		}
-		
+
 	}
-	
+
 	/** Gets be called on closing tags like: 
 	 * </tag> */
 	@Override
 	public void endElement(String namespaceURI, String localName, String qName)
-			throws SAXException {
-		
-		if (localName.equals("id")) {
-			currentItem.setId( contents.toString());
-		} else if( localName.equals("video_format")) {
-			currentItem.setCodec(contents.toString());
-		} else if( localName.equals("video_bitrate")) {
-			currentItem.setBitrate(contents.toString());
-		} else if( localName.equals("name")) {
-			currentItem.setName(contents.toString());			
-		}
+	throws SAXException {
+
 	}
-	
+
 	/** Gets be called on the following structure: 
 	 * <tag>characters</tag> */
 	@Override
-    public void characters(char ch[], int start, int length) {		
+	public void characters(char ch[], int start, int length) {		
 		contents.write(ch, start, length);
-    	}
-    }
+	}
+
+
+
+}

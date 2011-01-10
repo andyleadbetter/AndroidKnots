@@ -6,15 +6,16 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import android.app.Activity;
+
 public class KnotsListHandler extends DefaultHandler{
 
 	// ===========================================================
 	// Fields
 	// ===========================================================
-	
-	private KnotsItem currentItem;
-	private KnotsPage currentPage;
-	private KnotsAdapter listAdapter;
+	private KnotsItem mCurrentItem;
+	private KnotsListAdapter mListAdapter;
+	private Activity mCurrentActivity;
 	
 	// Buffer for collecting data from
     // the "characters" SAX event.
@@ -25,19 +26,19 @@ public class KnotsListHandler extends DefaultHandler{
     	ParsingRoot,
     	ParsingItems,
     	ParsingItem,
+    	ParsingGroup,
     	ParsingPage,
     	Finished
     };
     
     private CurrentState status;
     
-
-	public void setListAdapter(KnotsAdapter adapter) {
-		listAdapter = adapter;
+	public KnotsListHandler(Activity parentActivity, KnotsListAdapter listAdapter ) {
+		
+		mCurrentActivity = parentActivity;
+		mListAdapter = listAdapter;
+		
 	}
-    
-
-
 
 	// ===========================================================
 	// Methods
@@ -50,8 +51,7 @@ public class KnotsListHandler extends DefaultHandler{
 
 	@Override
 	public void endDocument() throws SAXException {
-		// Nothing to do
-		status = CurrentState.Finished;
+			
 	}
 
 	/** Gets be called on opening tags like: 
@@ -64,16 +64,32 @@ public class KnotsListHandler extends DefaultHandler{
 		
 		contents.reset();
 		
-		if( localName.equals("item")) {
-			currentItem = new KnotsItem(listAdapter.getActivity().getApplicationContext());
-			status = CurrentState.ParsingItem;
-		} else if( localName.equals("pages")) {
-			currentPage = new KnotsPage();		
-			status = CurrentState.ParsingPage;
-		} else if( localName.equals("items")) {
-			status = CurrentState.ParsingItems;
+		
+		
+		if( localName.equals("group") )
+		{
+			mCurrentItem = new KnotsItem();			
+			status = CurrentState.ParsingGroup;			
+    		mCurrentItem.setType( KnotsItem.VIRTUAL );
 		}
 		
+		if( localName.equals("item")) {
+			mCurrentItem = new KnotsItem();
+			mCurrentItem.setType( KnotsItem.ITEM );		
+			status = CurrentState.ParsingItem;
+		}
+
+		if( status == CurrentState.ParsingGroup || status == CurrentState.ParsingItem ){
+			int count = atts.getLength() - 1;			
+			while( count >= 0 )
+			{				
+				String value = atts.getValue(count);
+				String name = atts.getQName(count);
+				mCurrentItem.getFields().put(name,value);
+				count = count - 1;
+
+			}
+		}
 	}
 	
 	/** Gets be called on closing tags like: 
@@ -83,38 +99,21 @@ public class KnotsListHandler extends DefaultHandler{
 			throws SAXException {
 		
 		if( status == CurrentState.ParsingItem ) {
-			
-			if (localName.equals("dir")) {
-				currentItem.setDirectoryId(contents.toString());
-			}else if (localName.equals("id")) {
-				currentItem.setId(contents.toString());
-			}else if (localName.equals("mediatype")) {
-				currentItem.setMediaType(contents.toString());
-			}else if (localName.equals("mid")) {
-				currentItem.setMid(contents.toString());
-			}
-		
-			// While parsing the item element, add each field to the hash table, its used later when fetching media from server.
-			if(!localName.equals("item")) {
-				// Store this data to the item hash fields.
-				currentItem.getFields().put(localName, contents.toString());	
-			}
-			
+
 			//if this is the end of the item element, then call retrieveData to pull info about this item
 			if( localName.equals("item") ) {
-				currentItem.retrieveData();
-				
-				listAdapter.addItem(currentItem);
-			}
-			
-						
-		} else if( status == CurrentState.ParsingPage ) {
-			if (localName.equals("current")) {
-					currentPage.setCurrentPage(Integer.parseInt(contents.toString().trim()));
-			}else if (localName.equals("total")) {
-					currentPage.setTotalPages(Integer.parseInt(contents.toString().trim()));
-			}
-		}		
+				if( mCurrentItem.getFields().containsKey("thumbnailId") ){
+					String imageUrl = "http://api.orb.com/orb/data/image?sid=" + ((Knots)mCurrentActivity.getApplication()).getSessionId() + "&mediumId=" + mCurrentItem.getFields().get("thumbnailId") + "&maxWidth=128&maxHeight=128";				
+					mCurrentItem.setItemImage(imageUrl);
+				}				
+				mListAdapter.addItem(mCurrentItem);
+			} 					
+		} else if ( status == CurrentState.ParsingGroup ) {
+
+			if( localName.equals("group") ) {
+				mListAdapter.addItem(mCurrentItem);
+			}			
+		}
 	}
 	
 	/** Gets be called on the following structure: 

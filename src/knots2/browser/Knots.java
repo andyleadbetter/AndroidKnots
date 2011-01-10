@@ -4,22 +4,63 @@ import android.app.Application;
 
 public class Knots extends Application {
 
-	private String playerId;    
-	private String password;
-	private String media;
-	private String host;
+    
+	private String password = "camer0n";
+	private String username = "andyleadbetter";
+	
+	private String apiKey = "32oc8ooo7ea2a";
+	private String maxInactiveTime;
+	private String orbVersion;
+	private String sessionId;
 			
 	/**
-	 * @return the playerId
+	 * @return the maxInactiveTime
 	 */
-	public String getPlayerId() {
-		return playerId;
+	public String getMaxInactiveTime() {
+		return maxInactiveTime;
 	}
 	/**
-	 * @param playerId the playerId to set
+	 * @param maxInactiveTime the maxInactiveTime to set
 	 */
-	public void setPlayerId(String playerId) {
-		this.playerId = playerId;
+	public void setMaxInactiveTime(String maxInactiveTime) {
+		this.maxInactiveTime = maxInactiveTime;
+	}
+	/**
+	 * @return the orbVersion
+	 */
+	public String getOrbVersion() {
+		return orbVersion;
+	}
+	/**
+	 * @param orbVersion the orbVersion to set
+	 */
+	public void setOrbVersion(String orbVersion) {
+		this.orbVersion = orbVersion;
+	}
+	/**
+	 * @return the sessionId
+	 */
+	public String getSessionId() {
+		return sessionId;
+	}
+	/**
+	 * @param sessionId the sessionId to set
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+	/**
+	 * @return the apikey
+	 */
+	public final String getApiKey() {
+		return apiKey;
+	}
+
+	/**
+	 * @return the username
+	 */
+	public String getUsername() {
+		return username;
 	}
 	/**
 	 * @return the password
@@ -27,36 +68,14 @@ public class Knots extends Application {
 	public String getPassword() {
 		return password;
 	}
+	
 	/**
 	 * @param password the password to set
 	 */
 	public void setPassword(String password) {
 		this.password = password;
 	}
-	/**
-	 * @return the media
-	 */
-	public String getMedia() {
-		return media;
-	}
-	/**
-	 * @param media the media to set
-	 */
-	public void setMedia(String media) {
-		this.media = media;
-	}
-	/**
-	 * @param host the host to set
-	 */
-	public void setHost(String host) {
-		this.host = host;
-	}
-	/**
-	 * @return the host
-	 */
-	public String getHost() {
-		return "192.168.0.28";
-	}
+
 	
 	
 }
