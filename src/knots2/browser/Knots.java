@@ -4,7 +4,17 @@ import android.app.Application;
 
 public class Knots extends Application {
 
-    
+
+	public final static String SEARCHID = "com.knots.browser.searchId";
+	
+	public final static String MEDIAID = "com.knots.browser.mediaId";
+
+	public final static String ACTIONID = "com.knots.browser.action";
+	
+	public final static String PATHID = "com.knots.browser.action";
+	
+
+	
 	private String password = "camer0n";
 	private String username = "andyleadbetter";
 	

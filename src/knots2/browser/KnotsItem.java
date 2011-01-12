@@ -82,6 +82,8 @@ public class KnotsItem {
 		Intent nextIntent = new Intent();
 		nextIntent.setAction(Intent.ACTION_VIEW);
 		
+
+
 		switch( type ) {
 		case SERVER:
 				/*
@@ -90,23 +92,23 @@ public class KnotsItem {
 				 * */
 			break;
 		case DIR:
-			nextIntent.putExtra("path", mFields.get("dir"));				
-			nextIntent.putExtra("action", "browse");
+			nextIntent.putExtra(Knots.PATHID, mFields.get("dir"));				
+			nextIntent.putExtra(Knots.ACTIONID, "browse");
 			break;
 
 		case VIRTUAL:
-				nextIntent.putExtra("searchId", mFields.get("searchId"));
-				nextIntent.putExtra("action", "browseVirtual");
+				nextIntent.putExtra(Knots.SEARCHID, mFields.get("searchId"));
+				nextIntent.putExtra(Knots.ACTIONID, "browseVirtual");
 				break;
 
 		case ITEM:								
-				nextIntent.putExtra("media", mFields.get("orbMediumId"));				
-				nextIntent.putExtra("action", "play");
+				nextIntent.putExtra(Knots.MEDIAID, mFields.get("orbMediumId"));				
+				nextIntent.putExtra(Knots.ACTIONID, "play");
 				break;				
 		}
 		return nextIntent;		
-	}
-
+	}	
+	
 	/**
 	 * @param itemImage the itemImage to set
 	 */

@@ -37,22 +37,22 @@ public class ImageLoader {
     }
     
     final int stub_id=R.drawable.stub;
-    public void DisplayImage(String url, Activity activity, ImageView imageView)
+    public void DisplayImage(String url, Activity activity, ImageView imageView, String key)
     {
-        if(cache.containsKey(url))
-            imageView.setImageBitmap(cache.get(url));
+        if(cache.containsKey(key))
+            imageView.setImageBitmap(cache.get(key));
         else
         {
-            queuePhoto(url, activity, imageView);
+            queuePhoto(url, activity, imageView, key);
             imageView.setImageResource(stub_id);
         }    
     }
         
-    private void queuePhoto(String url, Activity activity, ImageView imageView)
+    private void queuePhoto(String url, Activity activity, ImageView imageView, String key)
     {
         //This ImageView may be used for other images before. So there may be some old tasks in the queue. We need to discard them. 
         photosQueue.Clean(imageView);
-        PhotoToLoad p=new PhotoToLoad(url, imageView);
+        PhotoToLoad p=new PhotoToLoad(url, imageView, key);
         synchronized(photosQueue.photosToLoad){
             photosQueue.photosToLoad.push(p);
             photosQueue.photosToLoad.notifyAll();
@@ -122,9 +122,11 @@ public class ImageLoader {
     {
         public String url;
         public ImageView imageView;
-        public PhotoToLoad(String u, ImageView i){
+		public String key;
+        public PhotoToLoad(String u, ImageView i, String theKey){
             url=u; 
             imageView=i;
+            key=theKey;
         }
     }
     
@@ -169,7 +171,7 @@ public class ImageLoader {
                             photoToLoad=photosQueue.photosToLoad.pop();
                         }
                         Bitmap bmp=getBitmap(photoToLoad.url);
-                        cache.put(photoToLoad.url, bmp);
+                        cache.put(photoToLoad.key, bmp);
                         if(((String)photoToLoad.imageView.getTag()).equals(photoToLoad.url)){
                             BitmapDisplayer bd=new BitmapDisplayer(bmp, photoToLoad.imageView);
                             Activity a=(Activity)photoToLoad.imageView.getContext();

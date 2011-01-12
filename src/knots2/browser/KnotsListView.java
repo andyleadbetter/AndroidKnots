@@ -61,15 +61,13 @@ public class KnotsListView extends Activity {
 		
 		setContentView(R.layout.main);
 
-		mImageLoader =new ImageLoader(application.getApplicationContext());
-
 		mPaths = new Stack<String>();
 
 		/* now try to get available profiles */
 		//profiles = loadProfiles();
 
 		list=(ListView)findViewById(R.id.list);
-		mAdapter=new KnotsListAdapter(this, mImageLoader);
+		mAdapter=new KnotsListAdapter(this);
 		
 		list.setAdapter(mAdapter);	
 		list.setOnItemClickListener(listener);
@@ -115,27 +113,28 @@ public class KnotsListView extends Activity {
     @Override
     public void onNewIntent(Intent intent) {
         final String action = intent.getAction();
+        
         if (Intent.ACTION_VIEW.equals(action)) {
         	
-        	if( intent.getStringExtra("action").equals("browseVirtual")) {
+        	if( intent.getStringExtra(Knots.ACTIONID).equals("browseVirtual")) {
 
 
         		// Treat as internal link only if valid Uri and host matches
-        		String newPath = intent.getStringExtra( "searchId" );
+        		String newPath = intent.getStringExtra( Knots.SEARCHID );
         		browseByPath("http://api.orb.com/orb/xml/media.search?sid=" 
         				+ application.getSessionId() 
         				+ "&filter=" + newPath
         				+ "&groupBy=virtualPath"
         				+ "&fields=path.fileName,date,thumbnailId,totalAccessCount,width,height,lastPlayPosition,title"
         				+ "&sortBy=path.fileName");
-        	} else if ( intent.getStringExtra("action").equals("play")) {
-
+        	
+        	} else if ( intent.getStringExtra(Knots.ACTIONID).equals("play")) {
 
         		// Treat as internal link only if valid Uri and host matches
-        		String mediaFile = "http://api.orb.com/orb/xml/media.search?sid=" 
+        		String mediaFile = "http://api.orb.com/orb/xml/stream?sid=" 
     				+ application.getSessionId() 
-    				+ "&mediumId=" + intent.getStringExtra( "media" )
-    				+ "&streamFormat=asx&type=pc&width=800&height=480&speed=4000";
+    				+ "&mediumId=" + intent.getStringExtra(Knots.MEDIAID)
+    				+ "&streamFormat=asx&type=pc&width=800&height=480&speed=2000";
         		
         		startPlayer( mediaFile );							        
         	}

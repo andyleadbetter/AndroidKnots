@@ -1,12 +1,14 @@
 package knots2.browser;
 
 import java.io.CharArrayWriter;
+import java.io.ObjectInputStream.GetField;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import android.app.Activity;
+import android.util.Log;
 
 public class KnotsListHandler extends DefaultHandler{
 
@@ -16,7 +18,8 @@ public class KnotsListHandler extends DefaultHandler{
 	private KnotsItem mCurrentItem;
 	private KnotsListAdapter mListAdapter;
 	private Activity mCurrentActivity;
-	
+	private final String TAG = "KnotsListHandler";
+
 	// Buffer for collecting data from
     // the "characters" SAX event.
     private CharArrayWriter contents = new CharArrayWriter();
@@ -32,6 +35,7 @@ public class KnotsListHandler extends DefaultHandler{
     };
     
     private CurrentState status;
+	private String mCurrentElement;
     
 	public KnotsListHandler(Activity parentActivity, KnotsListAdapter listAdapter ) {
 		
@@ -63,6 +67,7 @@ public class KnotsListHandler extends DefaultHandler{
 			String qName, Attributes atts) throws SAXException {
 		
 		contents.reset();
+		mCurrentElement = "";
 		
 		
 		
@@ -79,15 +84,25 @@ public class KnotsListHandler extends DefaultHandler{
 			status = CurrentState.ParsingItem;
 		}
 
-		if( status == CurrentState.ParsingGroup || status == CurrentState.ParsingItem ){
+		if( status == CurrentState.ParsingGroup )
+		{
 			int count = atts.getLength() - 1;			
-			while( count >= 0 )
-			{				
-				String value = atts.getValue(count);
-				String name = atts.getQName(count);
-				mCurrentItem.getFields().put(name,value);
-				count = count - 1;
+			while( count >= 0 ) {				
+					String value = atts.getValue(count);
+					String name = atts.getQName(count);
+					Log.d(TAG, name + " " + value );
+					mCurrentItem.getFields().put(name,value);
+					count = count - 1;
 
+			}
+		} else if( status == CurrentState.ParsingItem ) 		{
+			if( localName.equals("field")){
+				mCurrentElement = atts.getValue("name");
+			} else if( localName.equals("item")) {
+				String value = atts.getValue(0);
+				String name = atts.getQName(0);
+			
+				mCurrentItem.getFields().put( name, value );
 			}
 		}
 	}
@@ -99,9 +114,15 @@ public class KnotsListHandler extends DefaultHandler{
 			throws SAXException {
 		
 		if( status == CurrentState.ParsingItem ) {
-
-			//if this is the end of the item element, then call retrieveData to pull info about this item
-			if( localName.equals("item") ) {
+			
+		
+			if( localName.equals("field"))
+			{
+				mCurrentItem.getFields().put(mCurrentElement, contents.toString());
+			}		
+			else if( localName.equals("item") ) {
+				// At end of an item if there was a thumbnailId then
+				// set the image tag.
 				if( mCurrentItem.getFields().containsKey("thumbnailId") ){
 					String imageUrl = "http://api.orb.com/orb/data/image?sid=" + ((Knots)mCurrentActivity.getApplication()).getSessionId() + "&mediumId=" + mCurrentItem.getFields().get("thumbnailId") + "&maxWidth=128&maxHeight=128";				
 					mCurrentItem.setItemImage(imageUrl);

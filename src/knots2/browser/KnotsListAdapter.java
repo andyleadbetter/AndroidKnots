@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 public class KnotsListAdapter extends BaseAdapter {
 	
-	private ImageLoader mImageLoader;
+    private final ImageDownloader imageDownloader = new ImageDownloader();
     
     private Activity activity;
     /**
@@ -26,11 +26,10 @@ public class KnotsListAdapter extends BaseAdapter {
 	private Vector<KnotsItem> data;
     private static LayoutInflater inflater=null;
     
-    public KnotsListAdapter(Activity a, ImageLoader asyncLoader ) {
+    public KnotsListAdapter( Activity a ) {
         activity = a;
         data = new Vector<KnotsItem>();        
-        inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        mImageLoader = asyncLoader;
+        inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);        
     }
 
     public int getCount() {
@@ -83,11 +82,11 @@ public class KnotsListAdapter extends BaseAdapter {
 
         if( item.getType() == KnotsItem.VIRTUAL )
         {
-        	holder.image.getResources().getDrawable(R.drawable.knots_dir);
+        	holder.image.setImageDrawable( activity.getResources().getDrawable(R.drawable.knots_dir));
         }
         else if( ( item.getType() == KnotsItem.ITEM ) && item.getItemImage() != null) {
-        	holder.image.setTag(item.getItemImage());
-        	mImageLoader.DisplayImage(item.getItemImage(), activity, holder.image);	
+        	holder.image.setTag(item.getItemImage());        	
+            imageDownloader.download(item.getItemImage(), (ImageView) holder.image);
         }
         
         holder.text.setText(item.getFields().get("title"));        
