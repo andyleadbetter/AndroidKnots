@@ -37,7 +37,7 @@ public class KnotsListView extends Activity {
 	ImageLoader mImageLoader;
 	ListView list;
 	KnotsListAdapter mAdapter;
-	Stack<String> mPaths;
+	Stack<String> mPaths = new Stack<String>();
 	String mCurrentPath;
 	private Knots application;
     private long mLastPress = -1;
@@ -54,17 +54,11 @@ public class KnotsListView extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 
+		
 		super.onCreate(savedInstanceState);
 		application = (Knots) getApplication();
-
-		login();
-		
+	
 		setContentView(R.layout.main);
-
-		mPaths = new Stack<String>();
-
-		/* now try to get available profiles */
-		//profiles = loadProfiles();
 
 		list=(ListView)findViewById(R.id.list);
 		mAdapter=new KnotsListAdapter(this);
@@ -83,25 +77,25 @@ public class KnotsListView extends Activity {
      */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Otherwise fall through to parent
         // Handle back key as long we have a history stack
         if (keyCode == KeyEvent.KEYCODE_BACK && !mPaths.empty()) {
-
+        	
             // Compare against last pressed time, and if user hit multiple times
             // in quick succession, we should consider bailing out early.
             long currentPress = SystemClock.uptimeMillis();
-            if (currentPress - mLastPress < BACK_THRESHOLD) {
+            if (currentPress - mLastPress < BACK_THRESHOLD || mPaths.isEmpty() ) {
                 return super.onKeyDown(keyCode, event);
             }
             mLastPress = currentPress;
 
-            // Pop last entry off stack and start loading
             String lastEntry = mPaths.pop();
             loadDirectory(lastEntry);
-
+            
             return true;
         }
 
-        // Otherwise fall through to parent
+
         return super.onKeyDown(keyCode, event);
     }
 
@@ -134,7 +128,7 @@ public class KnotsListView extends Activity {
         		String mediaFile = "http://api.orb.com/orb/xml/stream?sid=" 
     				+ application.getSessionId() 
     				+ "&mediumId=" + intent.getStringExtra(Knots.MEDIAID)
-    				+ "&streamFormat=asx&type=pc&width=800&height=480&speed=2000";
+    				+ "&streamFormat=asx&type=pc&width=800&height=480&speed=1500";
         		
         		startPlayer( mediaFile );							        
         	}
@@ -146,14 +140,14 @@ public class KnotsListView extends Activity {
         					+ application.getSessionId() 
         					+ "&q=mediaType%3Dvideo&sortBy=title&fields=thumbnailId,virtualPath,totalAccessCount,width,height,lastPlayPosition,title");
         */
+        	login();
+        	
         	browseByPath("http://api.orb.com/orb/xml/media.search?sid=" 
 			+ application.getSessionId() 
 			+ "&q=mediaType%3Dvideo"
         	+ "&groupBy=virtualPath"
         	+ "&fields=path.fileName,date,path.fileName,date,thumbnailId,totalAccessCount,width,height,lastPlayPosition,title"
         	+ "&sortBy=path.fileName");
-
-        
         }
         	
     }
