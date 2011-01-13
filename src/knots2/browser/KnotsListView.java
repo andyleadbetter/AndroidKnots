@@ -34,7 +34,7 @@ import android.widget.ListView;
 
 public class KnotsListView extends Activity {
 	
-	ImageLoader mImageLoader;
+	ImageDownloader mImageDownloader;
 	ListView list;
 	KnotsListAdapter mAdapter;
 	Stack<String> mPaths = new Stack<String>();
@@ -54,14 +54,15 @@ public class KnotsListView extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 
+		mImageDownloader = new ImageDownloader();
 		
 		super.onCreate(savedInstanceState);
 		application = (Knots) getApplication();
-	
+		
 		setContentView(R.layout.main);
 
 		list=(ListView)findViewById(R.id.list);
-		mAdapter=new KnotsListAdapter(this);
+		mAdapter=new KnotsListAdapter(this, mImageDownloader);
 		
 		list.setAdapter(mAdapter);	
 		list.setOnItemClickListener(listener);
@@ -79,22 +80,30 @@ public class KnotsListView extends Activity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         // Otherwise fall through to parent
         // Handle back key as long we have a history stack
-        if (keyCode == KeyEvent.KEYCODE_BACK && !mPaths.empty()) {
-        	
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+         	
             // Compare against last pressed time, and if user hit multiple times
             // in quick succession, we should consider bailing out early.
             long currentPress = SystemClock.uptimeMillis();
-            if (currentPress - mLastPress < BACK_THRESHOLD || mPaths.isEmpty() ) {
+            if ( (currentPress - mLastPress < BACK_THRESHOLD ) ) {
                 return super.onKeyDown(keyCode, event);
             }
             mLastPress = currentPress;
-
-            String lastEntry = mPaths.pop();
-            loadDirectory(lastEntry);
             
-            return true;
+            // Normal press of back then is there a previous path
+            if( mPaths.isEmpty()){
+            	// Reached root so end activity
+            	this.finish();
+            } else {
+            	// go up one level
+            	mCurrentPath = mPaths.pop();
+            	loadDirectory(mCurrentPath);
+            
+            	return true;
+            }
         }
 
+        // Default do what ever super class decides.
 
         return super.onKeyDown(keyCode, event);
     }
@@ -134,15 +143,10 @@ public class KnotsListView extends Activity {
         	}
 
         } else if( Intent.ACTION_MAIN.equals( action ) ) {
-        	/*
-        	 * browseByPath("http://api.orb.com/orb/xml/media.search?sid=" 
-        	 *
-        					+ application.getSessionId() 
-        					+ "&q=mediaType%3Dvideo&sortBy=title&fields=thumbnailId,virtualPath,totalAccessCount,width,height,lastPlayPosition,title");
-        */
+        	
         	login();
         	
-        	browseByPath("http://api.orb.com/orb/xml/media.search?sid=" 
+        	browseRootPath("http://api.orb.com/orb/xml/media.search?sid=" 
 			+ application.getSessionId() 
 			+ "&q=mediaType%3Dvideo"
         	+ "&groupBy=virtualPath"
@@ -245,9 +249,6 @@ public class KnotsListView extends Activity {
 			e.printStackTrace();
 		}
 		
-		
-		
-		
 	}
 
 	public void browseByPath( String pathToBrowse )
@@ -255,9 +256,13 @@ public class KnotsListView extends Activity {
 		mPaths.push(mCurrentPath);
 		mCurrentPath = pathToBrowse;
 		loadDirectory(pathToBrowse);
-
 	}
 
+	public void browseRootPath( String pathToBrowse )
+	{		
+		mCurrentPath = pathToBrowse;
+		loadDirectory(pathToBrowse);
+	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {		
@@ -280,20 +285,6 @@ public class KnotsListView extends Activity {
 		}
 		return true;
 	}
-
-	public OnClickListener btnListener=new OnClickListener(){
-		public void onClick(View arg0) {
-			try {
-				mCurrentPath = mPaths.pop();
-			}
-			catch(EmptyStackException e)
-			{
-				mCurrentPath="";
-			}
-
-			loadDirectory(mCurrentPath);
-		}
-	};
 
 	private void loadDirectory( String pathToLoad ) {
 

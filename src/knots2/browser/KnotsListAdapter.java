@@ -13,8 +13,8 @@ import android.widget.TextView;
 
 public class KnotsListAdapter extends BaseAdapter {
 	
-    private final ImageDownloader imageDownloader = new ImageDownloader();
-    
+	ImageDownloader mImageDownloader;
+       
     private Activity activity;
     /**
 	 * @return the activity
@@ -26,8 +26,9 @@ public class KnotsListAdapter extends BaseAdapter {
 	private Vector<KnotsItem> data;
     private static LayoutInflater inflater=null;
     
-    public KnotsListAdapter( Activity a ) {
+    public KnotsListAdapter( Activity a, ImageDownloader imageDownloader  ) {
         activity = a;
+        mImageDownloader = imageDownloader;
         data = new Vector<KnotsItem>();        
         inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);        
     }
@@ -86,7 +87,7 @@ public class KnotsListAdapter extends BaseAdapter {
         }
         else if( ( item.getType() == KnotsItem.ITEM ) && item.getItemImage() != null) {
         	holder.image.setTag(item.getItemImage());        	
-            imageDownloader.download(item.getItemImage(), (ImageView) holder.image);
+            mImageDownloader.download(item.getItemImage(), (ImageView) holder.image);
         }
         
         holder.text.setText(item.getFields().get("title"));        
