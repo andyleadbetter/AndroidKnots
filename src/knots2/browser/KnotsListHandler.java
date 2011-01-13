@@ -3,20 +3,26 @@ package knots2.browser;
 import java.io.CharArrayWriter;
 import java.io.ObjectInputStream.GetField;
 
+import knots2.browser.KnotsListView.KnotsListDownload;
+import knots2.browser.KnotsListView.KnotsListHandlerObserver;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.util.Log;
 
-public class KnotsListHandler extends DefaultHandler{
+
+
+
+public class KnotsListHandler extends DefaultHandler {
 
 	// ===========================================================
 	// Fields
 	// ===========================================================
-	private KnotsItem mCurrentItem;
-	private KnotsListAdapter mListAdapter;
+	private KnotsItem mCurrentItem;	
 	private Activity mCurrentActivity;
 	private final String TAG = "KnotsListHandler";
 
@@ -36,11 +42,11 @@ public class KnotsListHandler extends DefaultHandler{
     
     private CurrentState status;
 	private String mCurrentElement;
+	private KnotsListHandlerObserver mParserObserver;
     
-	public KnotsListHandler(Activity parentActivity, KnotsListAdapter listAdapter ) {
+	public KnotsListHandler( KnotsListHandlerObserver parserObserver) {
 		
-		mCurrentActivity = parentActivity;
-		mListAdapter = listAdapter;
+		mParserObserver = parserObserver;
 		
 	}
 
@@ -124,15 +130,16 @@ public class KnotsListHandler extends DefaultHandler{
 				// At end of an item if there was a thumbnailId then
 				// set the image tag.
 				if( mCurrentItem.getFields().containsKey("thumbnailId") ){
-					String imageUrl = "http://api.orb.com/orb/data/image?sid=" + ((Knots)mCurrentActivity.getApplication()).getSessionId() + "&mediumId=" + mCurrentItem.getFields().get("thumbnailId") + "&maxWidth=128&maxHeight=128";				
+					String imageUrl = "&mediumId=" + mCurrentItem.getFields().get("thumbnailId") + "&maxWidth=128&maxHeight=128";				
 					mCurrentItem.setItemImage(imageUrl);
 				}				
-				mListAdapter.addItem(mCurrentItem);
+				mParserObserver.onNewItem(mCurrentItem);
+				
 			} 					
 		} else if ( status == CurrentState.ParsingGroup ) {
 
 			if( localName.equals("group") ) {
-				mListAdapter.addItem(mCurrentItem);
+				mParserObserver.onNewItem(mCurrentItem);
 			}			
 		}
 	}

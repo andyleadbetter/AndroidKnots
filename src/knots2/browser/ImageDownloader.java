@@ -44,7 +44,6 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.net.http.AndroidHttpClient;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.util.Log;
@@ -169,8 +168,7 @@ public class ImageDownloader {
         final int IO_BUFFER_SIZE = 4 * 1024;
 
         // AndroidHttpClient is not allowed to be used from the main thread
-        final HttpClient client = (mode == Mode.NO_ASYNC_TASK) ? new DefaultHttpClient() :
-            AndroidHttpClient.newInstance("Android");
+        final HttpClient client = new DefaultHttpClient();
         final HttpGet getRequest = new HttpGet(url);
 
         try {
@@ -206,11 +204,7 @@ public class ImageDownloader {
         } catch (Exception e) {
             getRequest.abort();
             Log.w(LOG_TAG, "Error while retrieving bitmap from " + url, e);
-        } finally {
-            if ((client instanceof AndroidHttpClient)) {
-                ((AndroidHttpClient) client).close();
-            }
-        }
+        } 
         return null;
     }
 

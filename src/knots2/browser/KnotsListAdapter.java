@@ -87,7 +87,7 @@ public class KnotsListAdapter extends BaseAdapter {
         }
         else if( ( item.getType() == KnotsItem.ITEM ) && item.getItemImage() != null) {
         	holder.image.setTag(item.getItemImage());        	
-            mImageDownloader.download(item.getItemImage(), (ImageView) holder.image);
+            mImageDownloader.download("http://api.orb.com/orb/data/image?sid=" + ((Knots)activity.getApplication()).getSessionId() +item.getItemImage(), (ImageView) holder.image);
         }
         
         holder.text.setText(item.getFields().get("title"));        

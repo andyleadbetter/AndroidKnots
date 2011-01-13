@@ -85,6 +85,16 @@ public class Knots extends Application {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+	public String getWidth() {
+		// 
+		return "640";
+	}
+	public String getHeight() {		
+		return "360";
+	}
+	public String getBitrate() {
+		return "320";
+	}
 
 	
 	
