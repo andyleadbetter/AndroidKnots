@@ -9,8 +9,4 @@
 	android:gravity="fill"
 	android:layout_width="fill_parent"
   	android:layout_height="fill_parent"/>
-<MediaController
-	android:id="@+id/mediacontrollerid"
-  	android:layout_width="fill_parent"
-  	android:layout_height="wrap_content"/>
 </LinearLayout>

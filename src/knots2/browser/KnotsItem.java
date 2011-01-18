@@ -168,8 +168,8 @@ public class KnotsItem {
 				 * */
 			break;
 		case DIR:
-			nextIntent.putExtra("path", fields.get("dir"));				
-			nextIntent.putExtra("action", "browse");
+			nextIntent.putExtra("knots2.browser.path", fields.get("dir"));				
+			nextIntent.putExtra("knots2.browser.action", "browse");
 			
 
 			
@@ -178,8 +178,8 @@ public class KnotsItem {
 				//knots.get_browser().show_virtual_category(get_item_attribute("search"), 1);
 				break;
 		case ITEM:								
-				nextIntent.putExtra("media", getMid());				
-				nextIntent.putExtra("action", "play");
+				nextIntent.putExtra("knots2.browser.media", getId());				
+				nextIntent.putExtra("knots2.browser.action", "play");
 				break;				
 		}
 		return nextIntent;

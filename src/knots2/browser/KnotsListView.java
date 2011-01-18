@@ -128,7 +128,7 @@ public class KnotsListView extends Activity {
         final String action = intent.getAction();
         if (Intent.ACTION_VIEW.equals(action)) {
             // Treat as internal link only if valid Uri and host matches
-            String newPath = intent.getStringExtra( "path" );
+            String newPath = intent.getStringExtra( "knots2.browser.path" );
             if( newPath != null )
               {
             	loadDirectory(newPath);
@@ -147,11 +147,11 @@ public class KnotsListView extends Activity {
 			KnotsAdapter.ViewHolder vh = (KnotsAdapter.ViewHolder)view.getTag();
 			Intent nextIntent = vh.item.itemSelected();
 			
-			if( nextIntent.getStringExtra("action")=="browse")
+			if( nextIntent.getStringExtra("knots2.browser.action")=="browse")
 			{
 				nextIntent.setClass(application.getApplicationContext(), KnotsListView.class);				
 				startActivity(nextIntent);	
-			} else if( nextIntent.getStringExtra("action")=="play") {				
+			} else if( nextIntent.getStringExtra("knots2.browser.action")=="play") {				
 				nextIntent.setClass(application.getApplicationContext(), KnotsPlayer.class);
 				startActivity(nextIntent);
 			}
