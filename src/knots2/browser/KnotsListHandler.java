@@ -5,6 +5,7 @@ import java.io.ObjectInputStream.GetField;
 
 import knots2.browser.KnotsListView.KnotsListDownload;
 import knots2.browser.KnotsListView.KnotsListHandlerObserver;
+import knots2.browser.KnotsListView.KnotsListHandlerUpdate;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -43,6 +44,8 @@ public class KnotsListHandler extends DefaultHandler {
     private CurrentState status;
 	private String mCurrentElement;
 	private KnotsListHandlerObserver mParserObserver;
+	private int mTotalEntries = 0;
+	private int mCount = 0;
     
 	public KnotsListHandler( KnotsListHandlerObserver parserObserver) {
 		
@@ -56,6 +59,8 @@ public class KnotsListHandler extends DefaultHandler {
 	@Override
 	public void startDocument() throws SAXException {
 		status = CurrentState.Idle;
+		mCount = 0;
+		mTotalEntries = 0;
 		
 	}
 
@@ -89,7 +94,15 @@ public class KnotsListHandler extends DefaultHandler {
 			mCurrentItem.setType( KnotsItem.ITEM );		
 			status = CurrentState.ParsingItem;
 		}
-
+		
+		if( localName.equals("searchResult")) {
+			/*
+			 * <searchResult searchId="0" groupCount="3" itemCount="0">
+			 */
+			mTotalEntries = Integer.parseInt(atts.getValue("groupCount")) + Integer.parseInt(atts.getValue("itemCount"));
+			
+		}
+		
 		if( status == CurrentState.ParsingGroup )
 		{
 			int count = atts.getLength() - 1;			
@@ -132,16 +145,25 @@ public class KnotsListHandler extends DefaultHandler {
 				if( mCurrentItem.getFields().containsKey("thumbnailId") ){
 					String imageUrl = "&mediumId=" + mCurrentItem.getFields().get("thumbnailId") + "&maxWidth=128&maxHeight=128";				
 					mCurrentItem.setItemImage(imageUrl);
-				}				
-				mParserObserver.onNewItem(mCurrentItem);
+				}
+				sendItemUpdate(mCurrentItem);
 				
 			} 					
 		} else if ( status == CurrentState.ParsingGroup ) {
 
 			if( localName.equals("group") ) {
-				mParserObserver.onNewItem(mCurrentItem);
-			}			
-		}
+				sendItemUpdate(mCurrentItem);
+			}
+		}				
+		
+	}
+	
+	public void sendItemUpdate( KnotsItem item ) {
+		KnotsListHandlerUpdate newItem = new KnotsListHandlerUpdate();
+		newItem.setItem(mCurrentItem);
+		newItem.setCurrentItem(mCount++);
+		newItem.setTotalItems(mTotalEntries);
+		mParserObserver.onNewItem(newItem);		
 	}
 	
 	/** Gets be called on the following structure: 

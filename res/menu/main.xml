@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu
   xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/quit"
-          android:icon="@drawable/knots_button_stop"
-          android:title="@string/quit" />
+    
+	<item android:title="Set Connection Type" android:enabled="true" android:id="@+id/itemSetConnectionType" android:icon="@drawable/knots_item_server"></item>
+	<item android:icon="@drawable/knots_button_stop" android:id="@+id/quit" android:title="@string/quit" />
 </menu>

@@ -15,7 +15,11 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
+import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -33,30 +37,32 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 
+import android.media.*;
+
 
 public class KnotsListView extends Activity {
 
 	ImageDownloader mImageDownloader;
 	ListView list;
 	KnotsListAdapter mAdapter;
-
-	public KnotsListAdapter getAdapter() {
-		return mAdapter;
-	}
-
 	Stack<String> mPaths = new Stack<String>();
 	String mCurrentPath;
-	private Knots application;
+	private Knots mApplication;
 	private long mLastPress = -1;
-
 	private static final long BACK_THRESHOLD = DateUtils.SECOND_IN_MILLIS / 2;
-	
 	KnotsListDownload mTask;
 
 	@Override
 	public void onDestroy() {		
+		if(mTask != null && mTask.getStatus()==AsyncTask.Status.RUNNING)
+			mTask.cancel(true);
 
+		mTask = null;
 		super.onDestroy();
+	}
+
+	public KnotsListAdapter getAdapter() {
+		return mAdapter;
 	}
 
 	/** Called when the activity is first created. */
@@ -66,7 +72,7 @@ public class KnotsListView extends Activity {
 		mImageDownloader = new ImageDownloader();
 
 		super.onCreate(savedInstanceState);
-		application = (Knots) getApplication();
+		mApplication = (Knots) getApplication();
 
 		setContentView(R.layout.main);
 
@@ -117,14 +123,33 @@ public class KnotsListView extends Activity {
 		return super.onKeyDown(keyCode, event);
 	}
 
+	private void cancelCurrentLoad() {
+		try {
+			if( mTask != null && mTask.getStatus()==AsyncTask.Status.RUNNING ) {			
+				mTask.cancel(true);
+				mTask.wait();
+			}
+		}
+		catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	private void loadDirectory(String currentPath) {
-		if(mTask == null || mTask.getStatus() == AsyncTask.Status.FINISHED ){
-			mTask=new KnotsListDownload();
-			DownloadTaskArgs args = new DownloadTaskArgs(currentPath, this);
-			mTask.setArgs(args);
-			Void executeArgs = null;
-			mTask.execute(executeArgs);	
-		}				
+
+		// if we are asked to load an item while still loading current one, 
+		// cancel it and kick off new download.
+		cancelCurrentLoad();
+
+		// create new task
+
+		mTask=new KnotsListDownload();
+		DownloadTaskArgs args = new DownloadTaskArgs(currentPath, this);
+		mTask.setArgs(args);
+		Void executeArgs = null;
+		mTask.execute(executeArgs);	
+
 	}
 
 	/**
@@ -140,11 +165,10 @@ public class KnotsListView extends Activity {
 
 			if( intent.getStringExtra(Knots.ACTIONID).equals("browseVirtual")) {
 
-
 				// Treat as internal link only if valid Uri and host matches
 				String newPath = intent.getStringExtra( Knots.SEARCHID );
 				browseByPath("http://api.orb.com/orb/xml/media.search?sid=" 
-						+ application.getSessionId() 
+						+ mApplication.getSessionId() 
 						+ "&filter=" + newPath
 						+ "&groupBy=virtualPath"
 						+ "&fields=path.fileName,date,thumbnailId,totalAccessCount,width,height,lastPlayPosition,title"
@@ -152,16 +176,8 @@ public class KnotsListView extends Activity {
 
 			} else if ( intent.getStringExtra(Knots.ACTIONID).equals("play")) {
 
-				// Treat as internal link only if valid Uri and host matches
-				String mediaFile = "http://api.orb.com/orb/xml/stream?sid=" 
-					+ application.getSessionId() 
-					+ "&mediumId=" + intent.getStringExtra(Knots.MEDIAID)
-					+ "&streamFormat=asx"
-					+ "&type=pc" 
-					+ "&width=" + application.getWidth()
-					+ "&height=" + application.getHeight()
-					+ "&speed=" + application.getBitrate();
 
+				String mediaFile = intent.getStringExtra(Knots.MEDIAID);
 				startPlayer( mediaFile );							        
 			}
 
@@ -170,7 +186,7 @@ public class KnotsListView extends Activity {
 			login();
 
 			browseRootPath("http://api.orb.com/orb/xml/media.search?sid=" 
-					+ application.getSessionId() 
+					+ mApplication.getSessionId() 
 					+ "&q=mediaType%3Dvideo"
 					+ "&groupBy=virtualPath"
 					+ "&fields=path.fileName,date,path.fileName,date,thumbnailId,totalAccessCount,width,height,lastPlayPosition,title"
@@ -179,10 +195,64 @@ public class KnotsListView extends Activity {
 
 	}
 
+	private void onSetConnectionType() {
+
+		final CharSequence[] theConnections = {"Home WLan", "Remote WLan", "Mobile"};  
+
+		AlertDialog.Builder alt_bld = new AlertDialog.Builder(this);  
+
+		alt_bld.setIcon(R.drawable.knots_item_video);  
+
+		alt_bld.setTitle("Select a connection profile");  
+
+		alt_bld.setSingleChoiceItems(theConnections, 0, new DialogInterface.OnClickListener() {  
+
+			public void onClick(DialogInterface dialog, int item) {  
+
+				switch( item ) {
+				case 0:
+					mApplication.setHeight("480");
+					mApplication.setWidth("800");
+					mApplication.setSpeed("1200");
+					break;
+				case 1:
+					mApplication.setHeight("360");
+					mApplication.setWidth("600");
+					mApplication.setSpeed("450");
+
+					break;
+				case 2:
+					mApplication.setHeight("300");
+					mApplication.setWidth("500");
+					mApplication.setSpeed("300");
+					break;
+				}
+				dialog.dismiss();	
+			}  
+		});  
+
+		AlertDialog alert = alt_bld.create();  
+
+		alert.show();  
+
+	}
+
 	private void startPlayer(String mediaFile) {
 
 		try {
-			URL login = new URL( mediaFile );
+
+			// Treat as internal link only if valid Uri and host matches
+			String mediaUri = "http://api.orb.com/orb/xml/stream?sid=" 
+				+ mApplication.getSessionId() 
+				+ "&mediumId=" + mediaFile
+				+ "&streamFormat=wmv"
+				+ "&type=pda" 
+				+ "&width=" + mApplication.getWidth()
+				+ "&height=" + mApplication.getHeight()
+				+ "&speed=" + mApplication.getBitrate();
+
+
+			URL playerStreamSetupUrl = new URL( mediaUri );
 
 			SAXParserFactory spf = SAXParserFactory.newInstance();
 			SAXParser sp = spf.newSAXParser();
@@ -195,12 +265,15 @@ public class KnotsListView extends Activity {
 			xr.setContentHandler(streamHandler);
 
 			/* Parse the xml-data from our URL. */
-			xr.parse(new InputSource(login.openStream()));
+			xr.parse(new InputSource(playerStreamSetupUrl .openStream()));
 
-			Intent i = new Intent(Intent.ACTION_VIEW);
+			Intent i = new Intent(Intent.ACTION_VIEW );
+			i.setClass(getApplicationContext(), knots2.browser.PlayerActivity.class );
 			Uri u = Uri.parse(streamHandler.getUri());
+			i.setType("video/x-ms-wmv");
 			i.setData(u);
 			startActivity(i);
+
 
 		} catch (MalformedURLException e) {
 			// TODO Auto-generated catch block
@@ -226,7 +299,7 @@ public class KnotsListView extends Activity {
 
 			KnotsListAdapter.ViewHolder vh = (KnotsListAdapter.ViewHolder)view.getTag();
 			Intent nextIntent = vh.item.itemSelected();
-			nextIntent.setClass(application.getApplicationContext(), KnotsListView.class);
+			nextIntent.setClass(mApplication.getApplicationContext(), KnotsListView.class);
 			startActivity(nextIntent);
 		}
 	};
@@ -236,9 +309,9 @@ public class KnotsListView extends Activity {
 
 		try {
 			URL login = new URL( "http://api.orb.com/orb/xml/session.login?apiKey=" 
-					+ application.getApiKey() 
-					+ "&l=" + application.getUsername()
-					+ "&password=" + application.getPassword() );
+					+ mApplication.getApiKey() 
+					+ "&l=" + mApplication.getUsername()
+					+ "&password=" + mApplication.getPassword() );
 
 			SAXParserFactory spf = SAXParserFactory.newInstance();
 			SAXParser sp = spf.newSAXParser();
@@ -253,9 +326,9 @@ public class KnotsListView extends Activity {
 			/* Parse the xml-data from our URL. */
 			xr.parse(new InputSource(login.openStream()));
 
-			application.setSessionId(loginHandler.getSessionId());
-			application.setOrbVersion(loginHandler.getOrbVersion());
-			application.setMaxInactiveTime(loginHandler.getMaxInactiveTime());
+			mApplication.setSessionId(loginHandler.getSessionId());
+			mApplication.setOrbVersion(loginHandler.getOrbVersion());
+			mApplication.setMaxInactiveTime(loginHandler.getMaxInactiveTime());
 
 		} catch (MalformedURLException e) {
 			// TODO Auto-generated catch block
@@ -303,52 +376,97 @@ public class KnotsListView extends Activity {
 			case R.id.quit:
 				super.finish();
 				break;
+			case R.id.itemSetConnectionType:
+				onSetConnectionType();
+				break;
 			}			
 		}
 		return true;
 	}
 
 	public abstract interface KnotsListHandlerObserver {
-		abstract public void onNewItem( KnotsItem newItem );
+		abstract public void onNewItem( KnotsListHandlerUpdate newItem );
 	}
-	
-	 private class DownloadTaskArgs {
-		 private String mPath;
-		 private KnotsListView mView;
-		 
-		 public DownloadTaskArgs( String path, KnotsListView view ) {
-			 mView = view;
-			 mPath = path;
-		 }
-		 
-		 public synchronized String getPath() {
-			return mPath;
-		 }
-		
 
-		
+	private class DownloadTaskArgs {
+		private String mPath;
+		private KnotsListView mView;
+
+		public DownloadTaskArgs( String path, KnotsListView view ) {
+			mView = view;
+			mPath = path;
+		}
+
+		public synchronized String getPath() {
+			return mPath;
+		}
+
 		public synchronized KnotsListAdapter getList(){
 			return mView.getAdapter();
 		}
 	}
+	
+	static public class KnotsListHandlerUpdate {
+		private KnotsItem mItem;
+		private int mTotalItems;
+		private int mCurrentItem;
+		
+		/**
+		 * @return the mItem
+		 */
+		public KnotsItem getItem() {
+			return mItem;
+		}
+		/**
+		 * @param mItem the mItem to set
+		 */
+		public void setItem(KnotsItem item) {
+			this.mItem = item;
+		}
+		/**
+		 * @return the mTotalItems
+		 */
+		public int getTotalItems() {
+			return mTotalItems;
+		}
+		/**
+		 * @param mTotalItems the mTotalItems to set
+		 */
+		public void setTotalItems(int totalItems) {
+			this.mTotalItems = totalItems;
+		}
+		/**
+		 * @return the mCurrentItem
+		 */
+		public int getCurrentItem() {
+			return mCurrentItem;
+		}
+		/**
+		 * @param mCurrentItem the mCurrentItem to set
+		 */
+		public void setCurrentItem(int currentItem) {
+			this.mCurrentItem = currentItem;
+		}
+	}
 
-	public class KnotsListDownload extends AsyncTask<Void, KnotsItem, Void > implements KnotsListHandlerObserver {
+	public class KnotsListDownload extends AsyncTask<Void, KnotsListHandlerUpdate, Void > implements KnotsListHandlerObserver {
 
 		DownloadTaskArgs mArgs;
 		
+		ProgressDialog dlg;
+
+		private ProgressDialog progressDialog;
+
 		public void setArgs( DownloadTaskArgs args ) {
 			mArgs = args;
 		}
-		
+
 		private void loadDirectory( String pathToLoad ) {
-			
+
 			try {
 
-				// this is the base path to pull items from
-				String externalPath = pathToLoad;
-
 				/* Create a URL we want to load some xml-data from. */
-				URL url = new URL( externalPath );
+				URL url = new URL( pathToLoad );
 
 				/* Get a SAXParser from the SAXPArserFactory. */
 				SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -372,27 +490,39 @@ public class KnotsListView extends Activity {
 			}	
 		}
 
-	
-		public void onNewItem(KnotsItem newItem) {
+		public void onNewItem(KnotsListHandlerUpdate newItem) {
 			publishProgress(newItem);			
 		}
-		
-		  protected void onProgressUpdate(KnotsItem... progress) {         
-			  mArgs.getList().addItem(progress[0]);     
-		  }
+
+		protected void onProgressUpdate(KnotsListHandlerUpdate... progress) {     
+
+			progressDialog.setMax(progress[0].getTotalItems());
+			progressDialog.setProgress(progress[0].getCurrentItem());
+			mArgs.getList().addItem(progress[0].getItem());     
+		}
 
 		@Override
 		protected Void doInBackground(Void... params) {
 			loadDirectory(mArgs.getPath());
 			return null;
 		}
+
+		protected void onPostExecute(Void result) {
+			progressDialog.dismiss();
+		}
 		
-	     protected void onPostExecute(Void result) {
-	    	 
-	     }
-	     protected void onPreExecute() {
-	    	 mArgs.getList().clear();
+		protected void onPreExecute() {
+
+			progressDialog = new ProgressDialog(KnotsListView.this);
+			progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);			
+			progressDialog.setMessage("Loading ... ");
+			progressDialog.setIndeterminate(false);
+			progressDialog.setCancelable(true);
+			progressDialog.setMax(0);
+			progressDialog.setProgress(0);
+			progressDialog.show();
 			
+			mArgs.getList().clear();
 		}
 	}
 }

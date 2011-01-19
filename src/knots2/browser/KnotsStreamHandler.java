@@ -75,7 +75,4 @@ public class KnotsStreamHandler extends DefaultHandler{
 	public void characters(char ch[], int start, int length) {		
 		contents.write(ch, start, length);
 	}
-
-
-
 }
