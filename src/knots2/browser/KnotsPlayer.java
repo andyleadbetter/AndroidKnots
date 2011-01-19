@@ -72,13 +72,10 @@ OnPreparedListener, OnErrorListener {
 		if (Intent.ACTION_VIEW.equals(action)) {
 
 			startPlayer(intent.getStringExtra("knots2.browser.media"));
-			final Uri mediaFile = playerProperties.get_streamUrl();
-
+		
 			if (this.mVideoView != null) {
-				this.mc = new MediaController(this);
-				this.mVideoView.setMediaController(this.mc);
-				this.mVideoView.setVideoURI(mediaFile);
-				this.mVideoView.requestFocus();
+				mVideoView.setVideoURI(Uri.parse("rtsp://192.168.0.28:8080/stream.sdp"));
+				mVideoView.start();
 				showDialog("Loading....");
 			}
 		}
@@ -133,7 +130,7 @@ OnPreparedListener, OnErrorListener {
 	void startPlayer(final String mediaId){
 
 		try{
-			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/external/play?profile=" + Integer.toString(6) +"&id=" + mediaId );
+			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/external/play?profile=" + Integer.toString(9) +"&id=" + mediaId );
 			HttpClient client = new DefaultHttpClient();
 			String txtResult = new String();
 
@@ -141,13 +138,6 @@ OnPreparedListener, OnErrorListener {
 			txtResult = HttpHelper.request(response);     
 			mApplication.setPlayerId(txtResult.split(":")[0]);
 			mApplication.setPassword(txtResult.split(":")[1]);
-
-			getPlayerProperties();
-
-			mc.setKeepScreenOn(true);
-			mVideoView.setMediaController(mc);
-			mVideoView.setVideoURI(Uri.parse("rtsp://192.168.0.28:8080/stream.sdp"));
-			mVideoView.start();
 
 		}
 		catch (Exception e) {
@@ -158,16 +148,17 @@ OnPreparedListener, OnErrorListener {
 
 	public void stopPlayer( )	{
 		/* Create a URL we want to load some xml-data from. */
-		if( mApplication.getPlayerId() != null ) {
-			/* Create a URL we want to load some xml-data from. */		
-			HttpClient client = new DefaultHttpClient();
-			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/root/stop?id=" + mApplication.getPlayerId() );
-			try{
-				HttpResponse response = client.execute(method);
-				HttpHelper.request(response);				
-			}catch(Exception ex){				
-			}
-		}
+		
+//		if( mApplication.getPlayerId() != null ) {
+//			/* Create a URL we want to load some xml-data from. */		
+//			HttpClient client = new DefaultHttpClient();
+//			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/root/stop?id=" + mApplication.getPlayerId() );
+//			try{
+//				HttpResponse response = client.execute(method);
+//				HttpHelper.request(response);				
+//			}catch(Exception ex){				
+//			}
+//		}
 	}
 
 
