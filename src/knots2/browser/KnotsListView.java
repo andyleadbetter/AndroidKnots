@@ -3,6 +3,7 @@ package knots2.browser;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.EmptyStackException;
 import java.util.Iterator;
 import java.util.Stack;
@@ -44,16 +45,16 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class KnotsListView extends Activity {
 
-	private Vector<Profile> profiles;	
-	private int currentProfile = 6;
+	private Vector<Profile> mProfiles;	
+	
+	private int currentProfile = 9;
+	
 	private static final int PROFILES_GROUP = 1;	
-	private static KnotsListView instance;
-	ImageLoader imageLoader;
-	ListView list;
-	KnotsAdapter adapter;
-	Stack<String> paths;
-	String currentPath;
-	private Knots application;
+	
+	ImageDownloader mImageLoader;
+	ListView mList;
+	KnotsAdapter mApdapter;		
+	private Knots mApplication;
     private long mLastPress = -1;
 
     private static final long BACK_THRESHOLD = DateUtils.SECOND_IN_MILLIS / 2;
@@ -69,21 +70,19 @@ public class KnotsListView extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
-		application = (Knots) getApplication();
+		mApplication = (Knots) getApplication();
 		
 		setContentView(R.layout.main);
 
-		imageLoader =new ImageLoader(application.getApplicationContext());
-
-		paths = new Stack<String>();
+		mImageLoader =new ImageDownloader();
 
 		/* now try to get available profiles */
-		profiles = loadProfiles();
+		mProfiles = loadProfiles();
 
-		list=(ListView)findViewById(R.id.list);
-		adapter=new KnotsAdapter(this);
-		list.setAdapter(adapter);	
-		list.setOnItemClickListener(listener);
+		mList=(ListView)findViewById(R.id.list);
+		mApdapter=new KnotsAdapter(this);
+		mList.setAdapter(mApdapter);	
+		mList.setOnItemClickListener(listener);
 
         // Handle incoming intents as possible searches or links
         onNewIntent(getIntent());
@@ -96,23 +95,6 @@ public class KnotsListView extends Activity {
      */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // Handle back key as long we have a history stack
-        if (keyCode == KeyEvent.KEYCODE_BACK && !paths.empty()) {
-
-            // Compare against last pressed time, and if user hit multiple times
-            // in quick succession, we should consider bailing out early.
-            long currentPress = SystemClock.uptimeMillis();
-            if (currentPress - mLastPress < BACK_THRESHOLD) {
-                return super.onKeyDown(keyCode, event);
-            }
-            mLastPress = currentPress;
-
-            // Pop last entry off stack and start loading
-            String lastEntry = paths.pop();
-            loadDirectory(lastEntry);
-
-            return true;
-        }
 
         // Otherwise fall through to parent
         return super.onKeyDown(keyCode, event);
@@ -127,13 +109,22 @@ public class KnotsListView extends Activity {
     public void onNewIntent(Intent intent) {
         final String action = intent.getAction();
         if (Intent.ACTION_VIEW.equals(action)) {
-            // Treat as internal link only if valid Uri and host matches
-            String newPath = intent.getStringExtra( "knots2.browser.path" );
-            if( newPath != null )
-              {
-            	loadDirectory(newPath);
-              }
+  
+        	String newPath = intent.getStringExtra( Knots.KNOTS_INTENT_EXTRA_PATH );
+        	if( newPath != null )
+        	{
+        		browseByPath(newPath);
+        	}
+        }
+        else if ( Intent.ACTION_SEARCH.equals(action)) {
+        	// if we are viewing then theres a new path
+        	String newPath = intent.getStringExtra( Knots.KNOTS_INTENT_EXTRA_PATH );
+        	if( newPath != null )
+        	{
+        		browseVirtual(newPath);
+        	}
         } else if( Intent.ACTION_MAIN.equals( action ) ) {
+        	// going to root path
         	browseByPath("");
         }
         	
@@ -145,28 +136,10 @@ public class KnotsListView extends Activity {
 				int position, long id) {
 
 			KnotsAdapter.ViewHolder vh = (KnotsAdapter.ViewHolder)view.getTag();
-			Intent nextIntent = vh.item.itemSelected();
-			
-			if( nextIntent.getStringExtra("knots2.browser.action")=="browse")
-			{
-				nextIntent.setClass(application.getApplicationContext(), KnotsListView.class);				
-				startActivity(nextIntent);	
-			} else if( nextIntent.getStringExtra("knots2.browser.action")=="play") {				
-				nextIntent.setClass(application.getApplicationContext(), KnotsPlayer.class);
-				startActivity(nextIntent);
-			}
-				
-			
+			Intent nextIntent = vh.item.itemSelected(mApplication);
+			startActivity(nextIntent);				
 		}
 	};
-
-	public void browseByPath( String pathToBrowse )
-	{		
-		paths.push(currentPath);
-		currentPath = pathToBrowse;
-		loadDirectory(pathToBrowse);
-
-	}
 
 
 	@Override
@@ -198,57 +171,71 @@ public class KnotsListView extends Activity {
 		return true;
 	}
 
-	public OnClickListener btnListener=new OnClickListener(){
-		public void onClick(View arg0) {
-			try {
-				currentPath = paths.pop();
-			}
-			catch(EmptyStackException e)
-			{
-				currentPath="";
-			}
+	private void browseVirtual( String virtualPath ) {
 
-			loadDirectory(currentPath);
+		// this is the base path to pull items from
+		String externalPath = mApplication.getHost() + "/external/browse?virtual=";
+		// Add the new sub tree to the URL, the root path is fetched with empty Path
+		if( virtualPath != "" ) {
+			externalPath += URLEncoder.encode(virtualPath);
 		}
-	};
 
+		loadDirectory(externalPath);
+	}
+
+	
+	private void browseByPath( String path ) {
+		// this is the base path to pull items from
+		String externalPath = mApplication.getHost() + "/external/browse?format=xml";
+
+		// Add the new sub tree to the URL, the root path is fetched with empty Path
+		if( path != "" ) {
+			externalPath += "&path=" + path;
+		}
+		
+		loadDirectory(externalPath);
+	}
+	
 	private void loadDirectory( String pathToLoad ) {
 
-		adapter.clear();
-
-		try {
-
-			// this is the base path to pull items from
-			String externalPath =application.getApplicationContext().getString( R.string.server ) + "/external/browse?format=xml";
-
-			// Add the new sub tree to the URL, the root path is fetched with empty Path
-			if( pathToLoad != "" ) {
-				externalPath += "&path=" + pathToLoad;
-			}
+		mApdapter.clear();
 
 			/* Create a URL we want to load some xml-data from. */
-			URL url = new URL( externalPath );
+			URL url;
+			try {
+				url = new URL( pathToLoad );
 
-			/* Get a SAXParser from the SAXPArserFactory. */
-			SAXParserFactory spf = SAXParserFactory.newInstance();
-			SAXParser sp = spf.newSAXParser();
 
-			/* Get the XMLReader of the SAXParser we created. */
-			XMLReader xr = sp.getXMLReader();
-			/* Create a new ContentHandler and apply it to the XML-Reader*/ 
-			KnotsListHandler myExampleHandler = new KnotsListHandler();
-			myExampleHandler.setListAdapter( adapter );
-			xr.setContentHandler(myExampleHandler);
+				/* Get a SAXParser from the SAXPArserFactory. */
+				SAXParserFactory spf = SAXParserFactory.newInstance();
+				SAXParser sp = spf.newSAXParser();
 
-			/* Parse the xml-data from our URL. */
-			xr.parse(new InputSource(url.openStream()));
-			/* Parsing has finished. */
+				/* Get the XMLReader of the SAXParser we created. */
+				XMLReader xr = sp.getXMLReader();
+				/* Create a new ContentHandler and apply it to the XML-Reader*/ 
+				KnotsListHandler myExampleHandler = new KnotsListHandler();
+				myExampleHandler.setListAdapter( mApdapter );
+				xr.setContentHandler(myExampleHandler);
 
-		} 
+				/* Parse the xml-data from our URL. */
+				xr.parse(new InputSource(url.openStream()));
+				/* Parsing has finished. */
+			}
+			catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SAXException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ParserConfigurationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
-		catch (Exception e) {
-			/* Display any Error to the GUI. */						
-		}	
+
 
 	}
 
@@ -258,7 +245,7 @@ public class KnotsListView extends Activity {
 
 		try {
 			/* Create a URL we want to load some xml-data from. */
-			URL url = new URL(application.getApplicationContext().getString( R.string.server ) + "/external/transcoding_profiles");
+			URL url = new URL(mApplication.getHost() + "/external/transcoding_profiles");
 
 			/* Get a SAXParser from the SAXPArserFactory. */
 			SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -291,7 +278,7 @@ public class KnotsListView extends Activity {
 		profilesMenu.setGroupCheckable( PROFILES_GROUP, true, true);
 		profilesMenu.setIcon(R.drawable.knots_button_player);
 
-		Iterator<Profile> itr = profiles.iterator();		
+		Iterator<Profile> itr = mProfiles.iterator();		
 		while(itr.hasNext())
 		{
 			Profile profile = itr.next();
@@ -302,7 +289,7 @@ public class KnotsListView extends Activity {
 	}
 
 	private void setCurrentProfile( MenuItem item ) {	
-		currentProfile = item.getItemId();				
+		mApplication.setCurrentProfile( item.getItemId() );				
 	}
 
 }

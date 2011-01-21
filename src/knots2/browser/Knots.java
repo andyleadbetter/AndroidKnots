@@ -4,10 +4,17 @@ import android.app.Application;
 
 public class Knots extends Application {
 
+	public static final String KNOTS_INTENT_ACTION_PLAY = "knots2.browser.action.play";
+	public static final String KNOTS_INTENT_EXTRA_MEDIA = "knots2.browser.media" ;
+	public static final String KNOTS_INTENT_EXTRA_PATH = "knots2.browser.path" ;
+	
 	private String playerId;    
 	private String password;
 	private String media;
 	private String host;
+	private int mCurrentProfile = 6;
+	
+
 			
 	/**
 	 * @return the playerId
@@ -55,7 +62,16 @@ public class Knots extends Application {
 	 * @return the host
 	 */
 	public String getHost() {
-		return "192.168.0.28";
+		return "http://192.168.0.28:1978";
+	}
+	
+	public int getCurrentProfile() {
+		return mCurrentProfile;
+	}
+	
+	public void setCurrentProfile(int i) {
+		// TODO Auto-generated method stub
+		mCurrentProfile = i;
 	}
 	
 	

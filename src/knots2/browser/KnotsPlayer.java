@@ -43,10 +43,6 @@ OnPreparedListener, OnErrorListener {
 	private MediaController mc;
 	private ProgressDialog dialog;
 
-
-
-
-
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
@@ -69,9 +65,9 @@ OnPreparedListener, OnErrorListener {
 
 		final String action = intent.getAction();
 	
-		if (Intent.ACTION_VIEW.equals(action)) {
+		if (Knots.KNOTS_INTENT_ACTION_PLAY.equals(action)) {
 
-			startPlayer(intent.getStringExtra("knots2.browser.media"));
+			startPlayer(intent.getStringExtra(Knots.KNOTS_INTENT_EXTRA_MEDIA));
 		
 			if (this.mVideoView != null) {
 				mVideoView.setVideoURI(Uri.parse("rtsp://192.168.0.28:8080/stream.sdp"));
@@ -130,7 +126,7 @@ OnPreparedListener, OnErrorListener {
 	void startPlayer(final String mediaId){
 
 		try{
-			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/external/play?profile=" + Integer.toString(9) +"&id=" + mediaId );
+			HttpGet method = new HttpGet( mApplication.getHost() + "/external/play?profile=" + Integer.toString(mApplication.getCurrentProfile()) +"&id=" + mediaId );
 			HttpClient client = new DefaultHttpClient();
 			String txtResult = new String();
 
@@ -149,16 +145,16 @@ OnPreparedListener, OnErrorListener {
 	public void stopPlayer( )	{
 		/* Create a URL we want to load some xml-data from. */
 		
-//		if( mApplication.getPlayerId() != null ) {
-//			/* Create a URL we want to load some xml-data from. */		
-//			HttpClient client = new DefaultHttpClient();
-//			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/root/stop?id=" + mApplication.getPlayerId() );
-//			try{
-//				HttpResponse response = client.execute(method);
-//				HttpHelper.request(response);				
-//			}catch(Exception ex){				
-//			}
-//		}
+		if( mApplication.getPlayerId() != null ) {
+			/* Create a URL we want to load some xml-data from. */		
+			HttpClient client = new DefaultHttpClient();
+			HttpGet method = new HttpGet(mApplication.getString( R.string.server ) + "/root/stop?id=" + mApplication.getPlayerId() );
+			try{
+				HttpResponse response = client.execute(method);
+				HttpHelper.request(response);				
+			}catch(Exception ex){				
+			}
+		}
 	}
 
 
@@ -220,13 +216,13 @@ OnPreparedListener, OnErrorListener {
 
 	public void showDialog( String reason ) {
 	
-//		if( dialog == null )
-//			dialog = ProgressDialog.show(KnotsPlayer.this, "", reason, true);
+		if( dialog == null )
+			dialog = ProgressDialog.show(KnotsPlayer.this, "", reason, true);
 	}
 
 	public void hideDialog() {
-//		dialog.dismiss();
-//		dialog=null;		
+		dialog.dismiss();
+		dialog=null;		
 	}
 
 	public void onPrepared(final MediaPlayer arg0) {

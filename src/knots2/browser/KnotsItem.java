@@ -131,8 +131,7 @@ public class KnotsItem {
 						if( mediaType == null || mediaType == "1" )
 							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_video);
 						else
-							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_music);	
-							
+							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_music);								
 					}		
 							
 				}
@@ -155,34 +154,33 @@ public class KnotsItem {
 		setItemImage();
 	}
 
-	public Intent itemSelected()
+	public Intent itemSelected(Knots application)
 	{
 		Intent nextIntent = new Intent();
-		nextIntent.setAction(Intent.ACTION_VIEW);
-		
 		switch( type ) {
 		case SERVER:
-				/*
-				 * knots.get_connection().select_server(get_item_id());
-				 * knots.connect_server();
-				 * */
+			/*
+			 * knots.get_connection().select_server(get_item_id());
+			 * knots.connect_server();
+			 * */
 			break;
 		case DIR:
-			nextIntent.putExtra("knots2.browser.path", fields.get("dir"));				
-			nextIntent.putExtra("knots2.browser.action", "browse");
-			
-
-			
-				break;
+			nextIntent.setAction(Intent.ACTION_VIEW);
+			nextIntent.putExtra(Knots.KNOTS_INTENT_EXTRA_PATH, fields.get("dir"));
+			nextIntent.setClass(application, KnotsListView.class);
+			break;
 		case VIRTUAL:
-				//knots.get_browser().show_virtual_category(get_item_attribute("search"), 1);
-				break;
+			nextIntent.setAction(Intent.ACTION_SEARCH);			
+			nextIntent.putExtra(Knots.KNOTS_INTENT_EXTRA_PATH, fields.get("search"));
+			nextIntent.setClass(application, KnotsListView.class);
+			break;
 		case ITEM:								
-				nextIntent.putExtra("knots2.browser.media", getId());				
-				nextIntent.putExtra("knots2.browser.action", "play");
-				break;				
+			nextIntent.putExtra(Knots.KNOTS_INTENT_EXTRA_MEDIA, getId());				
+			nextIntent.setAction(Knots.KNOTS_INTENT_ACTION_PLAY);
+			nextIntent.setClass(application, KnotsPlayer.class);	
+			break;				
 		}
 		return nextIntent;
-		
+
 	}
 }
