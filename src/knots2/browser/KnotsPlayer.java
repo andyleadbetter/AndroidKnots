@@ -26,6 +26,7 @@ import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.media.MediaPlayer.OnPreparedListener;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -37,87 +38,71 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.MediaController;
 
-public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
+public class KnotsPlayer extends Activity implements
 		OnCompletionListener, OnPreparedListener, OnErrorListener,
 		OnBufferingUpdateListener, MediaController.MediaPlayerControl {
 
-	public class FullScreenScaledVideoView extends SurfaceView {
+		
 	
-		public FullScreenScaledVideoView(final Context context) {
-			super(context);
-			setFocusable(true);
-		}
+	
+	
 
-		@Override
-		protected void onMeasure(final int widthMeasureSpec,
-				final int heightMeasureSpec) {
-			setMeasuredDimension(800, 480);
-		}
-
-		@Override
-		public boolean onTouchEvent(final MotionEvent event) {
-			if (event.getAction() == MotionEvent.ACTION_DOWN) {
-				mPlayerController.show();
-				return true;
-			} else {
-				return super.onTouchEvent(event);
-			}
-		}
-
-	}
-
-	private ProgressDialog dialog;
+	private ProgressDialog mProgressDialog;
 	Knots mApplication;
 	private int mBufferPercent;
 	private final Handler mHandler = new Handler();
 	private MediaController mPlayerController;
-	private MediaPlayer mPlayerEngine;
-	private SurfaceHolder mSurfaceHolder;
 	private PlayerProperties mPlayerProperties;
-	private SurfaceView mVideoView;
+	private KnotsVideoView mVideoView;
+
+	private void updateProperties() {
+
+		final String path = mApplication.getHost()
+		+ "/external/player_properties?player_id="
+		+ mApplication.getPlayerId();
+
+		/* Create a URL we want to load some xml-data from. */
+		URL url;
+
+		try {
+
+
+			url = new URL(path);
+
+			/* Get a SAXParser from the SAXPArserFactory. */
+			final SAXParserFactory spf = SAXParserFactory.newInstance();
+			final SAXParser sp = spf.newSAXParser();
+
+			/* Get the XMLReader of the SAXParser we created. */
+			final XMLReader xr = sp.getXMLReader();
+
+			/* Create a new ContentHandler and apply it to the XML-Reader */			
+			xr.setContentHandler(mPlayerProperties);
+
+			/* Parse the xml-data from our URL. */
+			xr.parse(new InputSource(url.openStream()));
+
+		} catch (final MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (final SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (final ParserConfigurationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (final IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 		
 	private final Runnable mUpdatePropertiesTask = new Runnable() {
 		public void run() {
-			final String path = mApplication.getHost()
-					+ "/external/player_properties?player_id="
-					+ mApplication.getPlayerId();
-
-			/* Create a URL we want to load some xml-data from. */
-			URL url;
-
-			try {
-				url = new URL(path);
-
-				/* Get a SAXParser from the SAXPArserFactory. */
-				final SAXParserFactory spf = SAXParserFactory.newInstance();
-				final SAXParser sp = spf.newSAXParser();
-
-				/* Get the XMLReader of the SAXParser we created. */
-				final XMLReader xr = sp.getXMLReader();
-
-				/* Create a new ContentHandler and apply it to the XML-Reader */			
-				xr.setContentHandler(mPlayerProperties);
-
-				/* Parse the xml-data from our URL. */
-				xr.parse(new InputSource(url.openStream()));
-				
-				/* Parsing has finished. */
-				mHandler.postDelayed(mUpdatePropertiesTask, 5000);
-
-			} catch (final MalformedURLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (final SAXException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (final ParserConfigurationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (final IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			updateProperties();
+			
+			mHandler.postDelayed(mUpdatePropertiesTask, 5000);
 		}
 	};
 
@@ -154,8 +139,8 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 	}
 
 	public void hideDialog() {
-		dialog.dismiss();
-		dialog = null;
+		mProgressDialog.dismiss();
+		mProgressDialog = null;
 	}
 
 	public boolean isPlaying() {
@@ -165,8 +150,8 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 
 	public void onBufferingUpdate(final MediaPlayer mp, final int percent) {
 		mBufferPercent = percent;
-		if (dialog != null) {
-			dialog.setProgress(mBufferPercent);
+		if (mProgressDialog != null) {
+			mProgressDialog.setProgress(mBufferPercent);
 		}
 	}
 
@@ -188,29 +173,25 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 
 		final LayoutParams params = new LayoutParams(LayoutParams.FILL_PARENT,
 				LayoutParams.FILL_PARENT);
-		mVideoView = new FullScreenScaledVideoView(this);
+
+		mVideoView = new KnotsVideoView(this);
 		mVideoView.setLayoutParams(params);
 		mVideoView.setKeepScreenOn(true);
+		mVideoView.setOnPreparedListener(this);
+		mVideoView.setOnCompletionListener(this);
+		mVideoView.setOnErrorListener(this);
+		
 
 		mPlayerController = new MediaController(this);
 		mPlayerController.setMediaPlayer(this);
-		mPlayerController.setAnchorView(mVideoView);
+		mVideoView.setMediaController(mPlayerController);
 
-		mSurfaceHolder = mVideoView.getHolder();
-		mSurfaceHolder.addCallback(this);
-		mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-		mPlayerEngine = new MediaPlayer();
-		mPlayerEngine.setOnBufferingUpdateListener(this);
-		mPlayerEngine.setOnCompletionListener(this);
-		mPlayerEngine.setOnPreparedListener(this);
-		mPlayerEngine.setOnErrorListener(this);
-		mPlayerEngine.setDisplay(mSurfaceHolder);
-		
 		mPlayerProperties = new PlayerProperties();
 
 		this.setContentView(mVideoView);
 
+	
+		
 		// Handle incoming intents as possible searches or links
 		onNewIntent(getIntent());
 
@@ -245,9 +226,7 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 	}
 
 	public void onPrepared(final MediaPlayer arg0) {
-
 		hideDialog();
-		arg0.start();
 	}
 
 	@Override
@@ -282,8 +261,13 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 
 	public void showDialog(final String reason) {
 
-		if (dialog == null) {
-			dialog = ProgressDialog.show(KnotsPlayer.this, "", reason, false);
+		if (mProgressDialog == null) {
+			mProgressDialog = new ProgressDialog(KnotsPlayer.this);
+			mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER );			
+			mProgressDialog.setMessage("Loading ... ");
+			mProgressDialog.setIndeterminate(true);
+			mProgressDialog.setCancelable(true);
+			mProgressDialog.show();
 		}
 	}
 
@@ -305,12 +289,18 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 			txtResult = HttpHelper.request(response);
 			mApplication.setPlayerId(txtResult.split(":")[0]);
 			mApplication.setPassword(txtResult.split(":")[1]);
-
+			
+			updateProperties();
+			
 			startPropertyUpdates();
-
-			mPlayerEngine.setDataSource("rtsp://192.168.0.28:8080/stream.sdp");
-			mPlayerEngine.prepareAsync();
+			mVideoView.setVideoURI(mPlayerProperties.get_streamUrl());
+			mVideoView.start();
 			showDialog("Loading");
+			
+			// if the stream url changed the update the media player
+
+
+
 
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -327,14 +317,13 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 
 		if (mApplication.getPlayerId() != null) {
 			stopPropertyUpdates();
+			mVideoView.stopPlayback(); 
 			/* Create a URL we want to load some xml-data from. */
 			final HttpClient client = new DefaultHttpClient();
 			final HttpGet method = new HttpGet(
 					mApplication.getString(R.string.server) + "/root/stop?id="
 							+ mApplication.getPlayerId());
 			try {
-				mPlayerEngine.stop();
-				mPlayerEngine.release();
 				final HttpResponse response = client.execute(method);
 				HttpHelper.request(response);
 			} catch (final Exception ex) {
@@ -344,20 +333,5 @@ public class KnotsPlayer extends Activity implements SurfaceHolder.Callback,
 
 	private void stopPropertyUpdates() {
 		mHandler.removeCallbacks(mUpdatePropertiesTask);
-	}
-
-	public void surfaceChanged(final SurfaceHolder holder, final int format,
-			final int width, final int height) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void surfaceCreated(final SurfaceHolder holder) {
-		mPlayerEngine.setDisplay(holder);
-	}
-
-	public void surfaceDestroyed(final SurfaceHolder holder) {
-		// TODO Auto-generated method stub
-		stopPlayer();
 	}
 }

@@ -1,6 +1,9 @@
 package knots2.browser;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -13,6 +16,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import knots2.browser.KnotsListView.KnotsListDownload;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -22,9 +27,11 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.format.DateUtils;
@@ -45,17 +52,18 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class KnotsListView extends Activity {
 
-	private Vector<Profile> mProfiles;	
 	
 	private int currentProfile = 9;
 	
 	private static final int PROFILES_GROUP = 1;	
 	
-	ImageDownloader mImageLoader;
+	
 	ListView mList;
 	KnotsAdapter mApdapter;		
 	private Knots mApplication;
     private long mLastPress = -1;
+
+	private KnotsListDownload mTask;
 
     private static final long BACK_THRESHOLD = DateUtils.SECOND_IN_MILLIS / 2;
 	
@@ -73,11 +81,6 @@ public class KnotsListView extends Activity {
 		mApplication = (Knots) getApplication();
 		
 		setContentView(R.layout.main);
-
-		mImageLoader =new ImageDownloader();
-
-		/* now try to get available profiles */
-		mProfiles = loadProfiles();
 
 		mList=(ListView)findViewById(R.id.list);
 		mApdapter=new KnotsAdapter(this);
@@ -100,6 +103,33 @@ public class KnotsListView extends Activity {
         return super.onKeyDown(keyCode, event);
     }
 
+	private void cancelCurrentLoad() {
+		try {
+			if( mTask != null && mTask.getStatus()==AsyncTask.Status.RUNNING ) {			
+				mTask.cancel(true);
+				mTask.wait();
+			}
+		}
+		catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	private void loadDirectory(String currentPath) {
+
+		// if we are asked to load an item while still loading current one, 
+		// cancel it and kick off new download.
+		cancelCurrentLoad();
+
+		// create new task
+
+		mTask=new KnotsListDownload();
+		DownloadTaskArgs args = new DownloadTaskArgs(currentPath, this);
+		mTask.setArgs(args);
+		Void executeArgs = null;
+		mTask.execute(executeArgs);	
+
+	}
     /**
      * Because we're singleTop, we handle our own new intents. These usually
      * come from the {@link SearchManager} when a search is requested, or from
@@ -196,81 +226,8 @@ public class KnotsListView extends Activity {
 		loadDirectory(externalPath);
 	}
 	
-	private void loadDirectory( String pathToLoad ) {
-
-		mApdapter.clear();
-
-			/* Create a URL we want to load some xml-data from. */
-			URL url;
-			try {
-				url = new URL( pathToLoad );
 
 
-				/* Get a SAXParser from the SAXPArserFactory. */
-				SAXParserFactory spf = SAXParserFactory.newInstance();
-				SAXParser sp = spf.newSAXParser();
-
-				/* Get the XMLReader of the SAXParser we created. */
-				XMLReader xr = sp.getXMLReader();
-				/* Create a new ContentHandler and apply it to the XML-Reader*/ 
-				KnotsListHandler myExampleHandler = new KnotsListHandler();
-				myExampleHandler.setListAdapter( mApdapter );
-				xr.setContentHandler(myExampleHandler);
-
-				/* Parse the xml-data from our URL. */
-				xr.parse(new InputSource(url.openStream()));
-				/* Parsing has finished. */
-			}
-			catch (MalformedURLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SAXException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ParserConfigurationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-
-
-	}
-
-	private Vector<Profile> loadProfiles() {
-
-		Vector<Profile> profiles = null;
-
-		try {
-			/* Create a URL we want to load some xml-data from. */
-			URL url = new URL(mApplication.getHost() + "/external/transcoding_profiles");
-
-			/* Get a SAXParser from the SAXPArserFactory. */
-			SAXParserFactory spf = SAXParserFactory.newInstance();
-			SAXParser sp = spf.newSAXParser();
-
-			/* Get the XMLReader of the SAXParser we created. */
-			XMLReader xr = sp.getXMLReader();
-			/* Create a new ContentHandler and apply it to the XML-Reader*/ 
-			KnotsProfilesHandler myExampleHandler = new KnotsProfilesHandler();
-			xr.setContentHandler(myExampleHandler);
-
-			/* Parse the xml-data from our URL. */
-			xr.parse(new InputSource(url.openStream()));
-			/* Parsing has finished. */
-
-			profiles = myExampleHandler.getParsedData();
-		}
-
-		catch (Exception e) {
-			/* Display any Error to the GUI. */			
-		}
-
-		return profiles;
-
-	}
 
 	private void addProfiles( Menu mainMenu ) {
 
@@ -278,7 +235,7 @@ public class KnotsListView extends Activity {
 		profilesMenu.setGroupCheckable( PROFILES_GROUP, true, true);
 		profilesMenu.setIcon(R.drawable.knots_button_player);
 
-		Iterator<Profile> itr = mProfiles.iterator();		
+		Iterator<Profile> itr = mApplication.getProfiles().iterator();		
 		while(itr.hasNext())
 		{
 			Profile profile = itr.next();
@@ -291,5 +248,137 @@ public class KnotsListView extends Activity {
 	private void setCurrentProfile( MenuItem item ) {	
 		mApplication.setCurrentProfile( item.getItemId() );				
 	}
+	public abstract interface KnotsListHandlerObserver {
+		abstract public void onNewItem( KnotsListHandlerUpdate newItem );
+		abstract public Knots getApplication();
+	}
 
+	private class DownloadTaskArgs {
+		private String mPath;
+		private KnotsListView mView;		
+
+		public DownloadTaskArgs( String path, KnotsListView view) {
+			mView = view;
+			mPath = path;
+		}
+
+		public synchronized String getPath() {
+			return mPath;
+		}
+
+
+	}
+	
+	static public class KnotsListHandlerUpdate {
+		private KnotsItem mItem;
+		private int mTotalItems;
+		private int mCurrentItem;
+		
+		/**
+		 * @return the mItem
+		 */
+		public KnotsItem getItem() {
+			return mItem;
+		}
+		/**
+		 * @param mItem the mItem to set
+		 */
+		public void setItem(KnotsItem item) {
+			this.mItem = item;
+		}
+		/**
+		 * @return the mTotalItems
+		 */
+		public int getTotalItems() {
+			return mTotalItems;
+		}
+		/**
+		 * @param mTotalItems the mTotalItems to set
+		 */
+		public void setTotalItems(int totalItems) {
+			this.mTotalItems = totalItems;
+		}
+		/**
+		 * @return the mCurrentItem
+		 */
+		public int getCurrentItem() {
+			return mCurrentItem;
+		}
+		/**
+		 * @param mCurrentItem the mCurrentItem to set
+		 */
+		public void setCurrentItem(int currentItem) {
+			this.mCurrentItem = currentItem;
+		}
+	}
+
+	public class KnotsListDownload extends AsyncTask<Void, KnotsListHandlerUpdate, Void > implements KnotsListHandlerObserver {
+
+		DownloadTaskArgs mArgs;
+		
+		public void setArgs( DownloadTaskArgs args ) {
+			mArgs = args;
+		}
+		public Knots getApplication() {
+			return (Knots)mArgs.mView.getApplication();
+		}
+		
+		private void loadDirectory( DownloadTaskArgs args ) {
+			HttpURLConnection urlConnection = null;
+			try {
+				      
+				/* Create a URL we want to load some xml-data from. */
+				URL url = new URL( args.getPath() );
+				urlConnection = (HttpURLConnection) url.openConnection();
+				
+				/* Get a SAXParser from the SAXPArserFactory. */
+				SAXParserFactory spf = SAXParserFactory.newInstance();
+				SAXParser sp = spf.newSAXParser();
+
+				/* Get the XMLReader of the SAXParser we created. */
+				XMLReader xr = sp.getXMLReader();
+				/* Create a new ContentHandler and apply it to the XML-Reader*/ 
+				KnotsListHandler folderHandler = new KnotsListHandler((KnotsListHandlerObserver)this);
+
+				xr.setContentHandler(folderHandler);
+
+				/* Parse the xml-data from our URL. */
+				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+				
+				xr.parse(new InputSource(in));
+				/* Parsing has finished. */
+
+			} 
+
+			catch (Exception e) {
+				/* Display any Error to the GUI. */						
+			}	
+			finally {     
+				urlConnection.disconnect();   
+			}
+			
+		}
+
+		public void onNewItem(KnotsListHandlerUpdate newItem) {
+			publishProgress(newItem);			
+		}
+
+		protected void onProgressUpdate(KnotsListHandlerUpdate... progress) {     
+
+			mArgs.mView.mApdapter.addItem(progress[0].getItem());     
+		}
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			loadDirectory(mArgs);
+			return null;
+		}
+
+		protected void onPostExecute(Void result) {
+		}
+		
+		protected void onPreExecute() {		
+			mArgs.mView.mApdapter.clear();
+		}
+	}
 }

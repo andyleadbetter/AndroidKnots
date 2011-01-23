@@ -1,5 +1,14 @@
 package knots2.browser;
 
+import java.net.URL;
+import java.util.Vector;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+
 import android.app.Application;
 
 public class Knots extends Application {
@@ -13,9 +22,57 @@ public class Knots extends Application {
 	private String media;
 	private String host;
 	private int mCurrentProfile = 6;
-	
+	private ImageDownloader mImageDownloadCache;
+	private Vector<Profile> mProfiles;	
 
-			
+	public Vector<Profile> getProfiles() {
+		return mProfiles;
+	}
+	
+	
+	public Knots() {
+		mImageDownloadCache = new ImageDownloader();
+		mProfiles = loadProfiles();
+	}
+	
+	private Vector<Profile> loadProfiles() {
+
+		Vector<Profile> profiles = null;
+
+		try {
+			/* Create a URL we want to load some xml-data from. */
+			URL url = new URL(getHost() + "/external/transcoding_profiles");
+
+			/* Get a SAXParser from the SAXPArserFactory. */
+			SAXParserFactory spf = SAXParserFactory.newInstance();
+			SAXParser sp = spf.newSAXParser();
+
+			/* Get the XMLReader of the SAXParser we created. */
+			XMLReader xr = sp.getXMLReader();
+			/* Create a new ContentHandler and apply it to the XML-Reader*/ 
+			KnotsProfilesHandler myExampleHandler = new KnotsProfilesHandler();
+			xr.setContentHandler(myExampleHandler);
+
+			/* Parse the xml-data from our URL. */
+			xr.parse(new InputSource(url.openStream()));
+			/* Parsing has finished. */
+
+			profiles = myExampleHandler.getParsedData();
+		}
+
+		catch (Exception e) {
+			/* Display any Error to the GUI. */			
+		}
+
+		return profiles;
+
+	}
+	
+	public ImageDownloader getImageDownloadCache() {
+		return mImageDownloadCache;
+	}
+
+
 	/**
 	 * @return the playerId
 	 */
@@ -72,7 +129,5 @@ public class Knots extends Application {
 	public void setCurrentProfile(int i) {
 		// TODO Auto-generated method stub
 		mCurrentProfile = i;
-	}
-	
-	
+	}	
 }

@@ -16,38 +16,37 @@
 
 package knots2.browser;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.xml.sax.InputSource;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
+import android.net.http.AndroidHttpClient;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.ImageView;
+
+import java.io.BufferedInputStream;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This helper class download images from the Internet and binds those with the provided ImageView.
@@ -164,77 +163,36 @@ public class ImageDownloader {
         return null;
     }
 
-    Bitmap downloadBitmap(String url) {
-        final int IO_BUFFER_SIZE = 4 * 1024;
+    Bitmap downloadBitmap(String theBitmapUrl) {
 
-        // AndroidHttpClient is not allowed to be used from the main thread
-        final HttpClient client = new DefaultHttpClient();
-        final HttpGet getRequest = new HttpGet(url);
-
+    	Bitmap theDownloadedBitmap = null;
+    	HttpURLConnection urlConnection = null;
         try {
-            HttpResponse response = client.execute(getRequest);
-            final int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-                Log.w("ImageDownloader", "Error " + statusCode +
-                        " while retrieving bitmap from " + url);
-                return null;
-            }
+			/* Create a URL we want to load some xml-data from. */
+			URL url = new URL( theBitmapUrl );
+			
+			urlConnection = (HttpURLConnection) url.openConnection();
+			Log.d("BitmapTask","Using Cache " + (urlConnection.getUseCaches()==true ? "True":"False"));
 
-            final HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                InputStream inputStream = null;
-                try {
-                    inputStream = entity.getContent();
-                    // return BitmapFactory.decodeStream(inputStream);
-                    // Bug on slow connections, fixed in future release.
-                    return BitmapFactory.decodeStream(new FlushedInputStream(inputStream));
-                } finally {
-                    if (inputStream != null) {
-                        inputStream.close();
-                    }
-                    entity.consumeContent();
-                }
-            }
-        } catch (IOException e) {
-            getRequest.abort();
-            Log.w(LOG_TAG, "I/O error while retrieving bitmap from " + url, e);
-        } catch (IllegalStateException e) {
-            getRequest.abort();
-            Log.w(LOG_TAG, "Incorrect URL: " + url);
-        } catch (Exception e) {
-            getRequest.abort();
-            Log.w(LOG_TAG, "Error while retrieving bitmap from " + url, e);
-        } 
-        return null;
-    }
-
-    /*
-     * An InputStream that skips the exact number of bytes provided, unless it reaches EOF.
-     */
-    static class FlushedInputStream extends FilterInputStream {
-        public FlushedInputStream(InputStream inputStream) {
-            super(inputStream);
+			/* Parse the xml-data from our URL. */
+			InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+			theDownloadedBitmap = BitmapFactory.decodeStream(in);
+			
+        } catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			
+        	if( urlConnection != null )
+        		urlConnection.disconnect();
         }
-
-        @Override
-        public long skip(long n) throws IOException {
-            long totalBytesSkipped = 0L;
-            while (totalBytesSkipped < n) {
-                long bytesSkipped = in.skip(n - totalBytesSkipped);
-                if (bytesSkipped == 0L) {
-                    int b = read();
-                    if (b < 0) {
-                        break;  // we reached EOF
-                    } else {
-                        bytesSkipped = 1; // we read one byte
-                    }
-                }
-                totalBytesSkipped += bytesSkipped;
-            }
-            return totalBytesSkipped;
-        }
+        return theDownloadedBitmap;
     }
-
+    
+  
     /**
      * The actual AsyncTask that will asynchronously download the image.
      */
@@ -311,106 +269,15 @@ public class ImageDownloader {
      * 
      * We use a hard and a soft cache. A soft reference cache is too aggressively cleared by the
      * Garbage Collector.
-     * 
-     * This cache uses sURLs to create a key it is not generic.
-     * 
      */
     
-    private class DiskBackedHashMap extends LinkedHashMap< String, Bitmap >  {
-
-        File cacheDir;
-    	
-		public DiskBackedHashMap(int i, float f, boolean b) {
-			super( i, f, b);
-
-			//Find the dir to save cached images
-	        if (android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED))
-	            cacheDir=new File(android.os.Environment.getExternalStorageDirectory(),"LazyList");
-	        else
-	            cacheDir=android.os.Environment.getDownloadCacheDirectory ();
-	        
-	        if(!cacheDir.exists())
-	            cacheDir.mkdirs();
-	    }
-		
-	    //decodes image and scales it to reduce memory consumption
-	    private Bitmap decodeFile(File f){
-	        try {
-	            return BitmapFactory.decodeStream(new FileInputStream(f));
-	        } catch (FileNotFoundException e) {}
-	        return null;
-	    }
-	    
-		
-		public Bitmap get(String key) {
-			String hash = hashUri(key);
-			// try memory cache first
-			Bitmap theBitmap = super.get(hash);
-			
-			if( theBitmap == null ) {
-			     String filename=hashUri(key);
-			     File f=new File(cacheDir, filename);			       
-			     theBitmap = decodeFile(f);
-			}
-			return theBitmap;
-		}
-		
-
-	    
-
-		public Bitmap put(String key, Bitmap value) {
-
-	    	Bitmap theBitmap = null;
-	    	//I identify images by hashcode. Not a perfect solution, good for the demo.
-	        String filename=hashUri(key); 
-	        
-	        File f=new File(cacheDir, filename);
-	        OutputStream os;
-			try {
-				os = new FileOutputStream(f);
-				value.compress(Bitmap.CompressFormat.PNG, 100, os);
-				theBitmap = super.put(filename, value);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-	        
-	       return theBitmap;	        	        	        	    	
-	        
-	    }
-
-
-		public Bitmap remove( String key ) {
-    		String hash = hashUri(key);
-    		
-    		 File f=new File(cacheDir, hash);
-    		 f.delete();    		
-    		
-    		return super.remove( hash );
-    	}
-    	
-    	private String hashUri( String uri ) {
-    		Uri theUri = Uri.parse( uri );	
-    		String hashKey = theUri.getQueryParameter("mediumId");
-    		return hashKey;
-    	}
-    	
-    	
-    }
-    
-    
-    private static final int HARD_CACHE_CAPACITY = 150;
-    private static final int DELAY_BEFORE_PURGE = 60 * 1000; // in milliseconds
+    private static final int HARD_CACHE_CAPACITY = 20;
+    private static final int DELAY_BEFORE_PURGE = 10 * 1000; // in milliseconds
 
     // Hard cache, with a fixed maximum capacity and a life duration
-    private final DiskBackedHashMap sHardBitmapCache =
-        new DiskBackedHashMap(HARD_CACHE_CAPACITY / 2, 0.75f, true) {
-        /**
-			 * 
-			 */
-			private static final long serialVersionUID = 1L;
-
-		@Override
+    private final HashMap<String, Bitmap> sHardBitmapCache =
+        new LinkedHashMap<String, Bitmap>(HARD_CACHE_CAPACITY / 2, 0.75f, true) {
+        @Override
         protected boolean removeEldestEntry(LinkedHashMap.Entry<String, Bitmap> eldest) {
             if (size() > HARD_CACHE_CAPACITY) {
                 // Entries push-out of hard reference cache are transferred to soft reference cache
@@ -495,3 +362,4 @@ public class ImageDownloader {
         purgeHandler.postDelayed(purger, DELAY_BEFORE_PURGE);
     }
 }
+

@@ -9,9 +9,11 @@ import java.util.Hashtable;
 import java.util.Set;
 
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.widget.ImageView;
 
 /**
  * @author andy
@@ -27,7 +29,7 @@ import android.graphics.drawable.Drawable;
 
 public class KnotsItem {
 
-	
+
 	public static final int CATEGORY = 0;
 	public static final int TAG = 1;
 	public static final int VALUE = 2;
@@ -36,122 +38,89 @@ public class KnotsItem {
 	public static final int VIRTUAL = 5;
 	public static final int SERVER = 6;
 	public static final int BUTTON = 7;
-	
-	
+	private static final String[] types = {"category", "tag", "value", "name", "dirname", "virtual", "server", "button"};
+
 	/**
 	 * 
 	 */
-	private String mid;
-	private String id;
-	private String directoryId;
-	private String text;
 	private int type;
-	private Drawable itemImage;
 	private Hashtable<String,String> fields;
-	private String mediaType;
-	private int intId;
-	private Context mContext;
-	
-	
-	public KnotsItem(Context context) {
-		mContext = context; 
+	private Knots mApplication;
+	private ImageView imageView;
+
+
+	public KnotsItem(Knots application) {
+		mApplication = application; 
 		fields = new Hashtable<String, String>();		
 	}
-	
-	public synchronized int getIntId() {
-		return intId;
-	}
 
+	
 	public synchronized String getMediaType() {
-		return mediaType;
-	}
-	public synchronized void setMediaType(String mediaType) {
-		this.mediaType = mediaType;
+		return fields.get("mediaType");
 	}
 	public synchronized String getMid() {
-		return mid;
-	}
-	public synchronized void setMid(String mid) {
-		this.mid = mid;
+		return fields.get("mid");
 	}
 	public synchronized String getId() {
-		return id;
-	}
-	public synchronized void setId(String id) {
-		this.id = id;
-		this.intId = Integer.valueOf(id);		
+		return fields.get("id");
 	}
 	public synchronized String getDirectoryId() {
-		return directoryId;
-	}
-	public synchronized void setDirectoryId(String directoryId) {
-		this.directoryId = directoryId;
+		return fields.get("directoryId");
 	}
 	public synchronized String getText() {
-		return text;
+		return fields.get(types[type]);
 	}
-	
-	
+
 	public synchronized int getType() {
-		
-		String[] types = {"category", "tag", "value", "name", "dirname", "virtual", "server", "button"};
+
+		return type;
+	}
+	public void dataFinished()
+	{
 		for (int i = 0; i < types.length; i++)
 		{
 			if (fields.keySet().contains(types[types.length - 1 - i]))
-			{
-				text = (String)fields.get(types[types.length - 1 - i]);
+			{				
 				type = types.length - 1 - i;
 				break;
 			}
 		}
-		return type;
 	}
-	
-	
-	public synchronized Drawable getItemImage() {
-		return itemImage;
-	}
-	
-	public synchronized void setItemImage() {
-		if( itemImage == null )
-		{		
-			try
-			{
-				if( !( mid == null ) ){		
-					String url = new String(  "http://192.168.0.28:1978/root/resource_file?type=screenshot&mid=" + mid + "&mediatype=0" );
-					InputStream is = (InputStream) new URL(url).getContent();
-					itemImage = Drawable.createFromStream(is, "src name");		    
-				} else {
-					
-					if( type == DIR ) {
-						itemImage = mContext.getResources().getDrawable(R.drawable.knots_dir);
-					} else if ( type == SERVER ) {
-						itemImage = mContext.getResources().getDrawable(R.drawable.knots_item_server);
-					} else if (type == ITEM) {
-						if( mediaType == null || mediaType == "1" )
-							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_video);
-						else
-							itemImage =  mContext.getResources().getDrawable(R.drawable.knots_item_music);								
-					}		
-							
-				}
 
-			}catch (Exception e) {
-					System.out.println("Exc="+e);	    
-			}		
-		}
+
+	public synchronized void getItemImage(ImageView imagePlaceHolder) {
+
+		try
+		{
+			String mid = fields.get("mid");
+			
+			if ( fields.keySet().contains("mid") && !mid.equals("" )) {
+				String url = new String(  "http://192.168.0.28:1978/root/resource_file?type=screenshot&mid=" + fields.get("mid") + "&mediatype=0" );									
+				mApplication.getImageDownloadCache().download(url, imagePlaceHolder );					
+			} else if( type == DIR ) {
+				imagePlaceHolder.setImageResource(R.drawable.knots_dir);
+			} else if ( type == SERVER ) {
+				imagePlaceHolder.setImageResource(R.drawable.knots_item_server);
+			} else if (type == ITEM) {
+				String mediaType = fields.get("mediatype");
+				if( mediaType.equals(null) ||  mediaType.equals("1" ))
+					imagePlaceHolder.setImageResource(R.drawable.knots_item_video);
+				else
+					imagePlaceHolder.setImageResource(R.drawable.knots_item_music);								
+			} else {
+				imagePlaceHolder.setImageResource(R.drawable.knots_dir);
+			}
+
+		}catch (Exception e) {
+			System.out.println("Exc="+e);	    
+		}		
 	}
-	
+
 	public synchronized Hashtable<String, String> getFields() {
 		return fields;
 	}
 	public synchronized void setFields(Hashtable<String, String> fields) {
 		this.fields = fields;
-	}
-	
-	public void retrieveData() {
-		int local_type = getType();
-		setItemImage();
 	}
 
 	public Intent itemSelected(Knots application)

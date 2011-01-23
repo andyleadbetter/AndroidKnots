@@ -2,6 +2,9 @@ package knots2.browser;
 
 import java.io.CharArrayWriter;
 
+import knots2.browser.KnotsListView.KnotsListHandlerObserver;
+import knots2.browser.KnotsListView.KnotsListHandlerUpdate;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -30,10 +33,15 @@ public class KnotsListHandler extends DefaultHandler{
     };
     
     private CurrentState status;
+	private String mCurrentElement;
+	private KnotsListHandlerObserver mParserObserver;
+	private int mTotalEntries = 0;
+	private int mCount = 0;
+	private ImageDownloader mAsyncLoader;
     
-
-	public void setListAdapter(KnotsAdapter adapter) {
-		listAdapter = adapter;
+	public KnotsListHandler( KnotsListHandlerObserver parserObserver) {
+		
+		mParserObserver = parserObserver;
 	}
     
 
@@ -65,7 +73,7 @@ public class KnotsListHandler extends DefaultHandler{
 		contents.reset();
 		
 		if( localName.equals("item")) {
-			currentItem = new KnotsItem(listAdapter.getActivity().getApplicationContext());
+			currentItem = new KnotsItem(mParserObserver.getApplication());
 			status = CurrentState.ParsingItem;
 		} else if( localName.equals("pages")) {
 			currentPage = new KnotsPage();		
@@ -84,17 +92,7 @@ public class KnotsListHandler extends DefaultHandler{
 		
 		if( status == CurrentState.ParsingItem ) {
 			
-			if (localName.equals("dir")) {
-				currentItem.setDirectoryId(contents.toString());
-			}else if (localName.equals("id")) {
-				currentItem.setId(contents.toString());
-			}else if (localName.equals("mediatype")) {
-				currentItem.setMediaType(contents.toString());
-			}else if (localName.equals("mid")) {
-				currentItem.setMid(contents.toString());
-			}
-		
-			// While parsing the item element, add each field to the hash table, its used later when fetching media from server.
+				// While parsing the item element, add each field to the hash table, its used later when fetching media from server.
 			if(!localName.equals("item")) {
 				// Store this data to the item hash fields.
 				currentItem.getFields().put(localName, contents.toString());	
@@ -102,9 +100,8 @@ public class KnotsListHandler extends DefaultHandler{
 			
 			//if this is the end of the item element, then call retrieveData to pull info about this item
 			if( localName.equals("item") ) {
-				currentItem.retrieveData();
-				
-				listAdapter.addItem(currentItem);
+				currentItem.dataFinished();
+				sendItemUpdate(currentItem);				
 			}
 			
 						
@@ -114,7 +111,15 @@ public class KnotsListHandler extends DefaultHandler{
 			}else if (localName.equals("total")) {
 					currentPage.setTotalPages(Integer.parseInt(contents.toString().trim()));
 			}
-		}		
+		}
+	}
+		
+	public void sendItemUpdate( KnotsItem item ) {
+		KnotsListHandlerUpdate newItem = new KnotsListHandlerUpdate();
+		newItem.setItem(item);
+		newItem.setCurrentItem(mCount++);
+		newItem.setTotalItems(mTotalEntries);
+		mParserObserver.onNewItem(newItem);		
 	}
 	
 	/** Gets be called on the following structure: 

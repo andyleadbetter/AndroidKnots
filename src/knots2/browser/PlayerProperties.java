@@ -8,7 +8,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import android.net.Uri;
 
 
-public class PlayerProperties  extends DefaultHandler{
+public class PlayerProperties  extends DefaultHandler {
 
 		// ===========================================================
 		// Fields
@@ -57,16 +57,15 @@ public class PlayerProperties  extends DefaultHandler{
 
 			String url;
 	        
-			url = "http://";
+			url = "rtsp://";
 	        
 	        if( _playerId != null )
 	        {
 	        	url += _playerId + ":" + _password + "@";
 	        }
 	        
-	        url += "192.168.0.28" + ":"; 
-	        url += _port;
-	        url += "/" + _stream;
+	        url += "192.168.0.28:8080";
+	        url += "/stream.sdp";
 	        
 	        _streamUrl = Uri.parse(url);
 	        
@@ -113,7 +112,7 @@ public class PlayerProperties  extends DefaultHandler{
 			} else if ( localName == "looped" ) {
 				_looped = contents;
 			} else if ( localName == "duration") {
-				_duration = Integer.parseInt(contents);
+				_duration = Integer.parseInt(contents)*1000;
 			}
 
 		}
