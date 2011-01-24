@@ -4,4 +4,7 @@
     <item android:id="@+id/quit"
           android:icon="@drawable/knots_button_stop"
           android:title="@string/quit" />
+
+<item android:id="@+id/login"></item>
+
 </menu>

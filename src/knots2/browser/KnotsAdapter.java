@@ -67,6 +67,8 @@ public class KnotsAdapter extends BaseAdapter {
         View vi=convertView;
         ViewHolder holder;
         KnotsItem item = data.elementAt(position);
+        Knots application = (Knots) (((KnotsListView) activity).getApplication());
+        
         
         if(convertView==null){
             vi = inflater.inflate(R.layout.item, null);
@@ -79,7 +81,7 @@ public class KnotsAdapter extends BaseAdapter {
             holder=(ViewHolder)vi.getTag();
         
         holder.text.setText(item.getText());              
-        item.getItemImage( holder.image );
+        item.getItemImage( holder.image, application );
         holder.item = item;
         
         return vi;

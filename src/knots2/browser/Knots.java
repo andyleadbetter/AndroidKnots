@@ -1,8 +1,19 @@
 package knots2.browser;
 
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Vector;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
@@ -10,29 +21,74 @@ import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import android.app.Application;
+import android.content.SharedPreferences;
 
 public class Knots extends Application {
 
+	public static final String PREFS_NAME = "MyPrefsFile";    
 	public static final String KNOTS_INTENT_ACTION_PLAY = "knots2.browser.action.play";
 	public static final String KNOTS_INTENT_EXTRA_MEDIA = "knots2.browser.media" ;
 	public static final String KNOTS_INTENT_EXTRA_PATH = "knots2.browser.path" ;
 	
 	private String playerId;    
-	private String password;
+	private String mMediaPassword;
 	private String media;
 	private String host;
 	private int mCurrentProfile = 6;
 	private ImageDownloader mImageDownloadCache;
-	private Vector<Profile> mProfiles;	
-
+	private Vector<Profile> mProfiles;
+	private String mUserName;
+	private String mUserPassword;
+	SharedPreferences settings;   
+	TrustManager[] trustAllCerts;
 	public Vector<Profile> getProfiles() {
 		return mProfiles;
 	}
+	private void trustEveryone() {
+        try {
+                HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
+                        public boolean verify(String hostname, SSLSession session) {
+                                return true;
+                        }});
+                SSLContext context = SSLContext.getInstance("TLS");
+                context.init(null, new X509TrustManager[]{new X509TrustManager(){
+                        public void checkClientTrusted(X509Certificate[] chain,
+                                        String authType) throws CertificateException {}
+                        public void checkServerTrusted(X509Certificate[] chain,
+                                        String authType) throws CertificateException {}
+                        public X509Certificate[] getAcceptedIssuers() {
+                                return new X509Certificate[0];
+                        }}}, new SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(
+                                context.getSocketFactory());
+        } catch (Exception e) { // should never happen
+                e.printStackTrace();
+        }
+}
+
 	
-	
-	public Knots() {
+	public void onCreate() {
+		super.onCreate();
 		mImageDownloadCache = new ImageDownloader();
+		trustEveryone();
+		//		Restore preferences       
+		settings = getSharedPreferences(PREFS_NAME, 0);    
+		host = settings.getString("", "http://192.168.0.28:1978");
+		mUserName = settings.getString("username", "andy");
+		mUserPassword = settings.getString("password", "andy");
+		mCurrentProfile = settings.getInt("profile", 6);
+		
+		Authenticator.setDefault( new Authenticator(){
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(getUserName(),getUserPassword().toCharArray());     }}); 
 		mProfiles = loadProfiles();
+
+	}
+
+
+
+	public Knots() {
+
 	}
 	
 	private Vector<Profile> loadProfiles() {
@@ -58,10 +114,20 @@ public class Knots extends Application {
 			/* Parsing has finished. */
 
 			profiles = myExampleHandler.getParsedData();
+			boolean profileFound = false;
+			for (Profile profile : profiles) {
+				
+				if( profile.getIntegerId()==mCurrentProfile) {
+					profileFound = true;
+					break;				
+				}
+			} 
+			if( !profileFound )
+				mCurrentProfile = profiles.get(0).getIntegerId();
 		}
 
 		catch (Exception e) {
-			/* Display any Error to the GUI. */			
+			e.printStackTrace();			
 		}
 
 		return profiles;
@@ -88,14 +154,14 @@ public class Knots extends Application {
 	/**
 	 * @return the password
 	 */
-	public String getPassword() {
-		return password;
+	public String getMediaPassword() {
+		return mMediaPassword;
 	}
 	/**
 	 * @param password the password to set
 	 */
-	public void setPassword(String password) {
-		this.password = password;
+	public void setMediaPassword(String password) {
+		this.mMediaPassword = password;
 	}
 	/**
 	 * @return the media
@@ -114,12 +180,15 @@ public class Knots extends Application {
 	 */
 	public void setHost(String host) {
 		this.host = host;
+		SharedPreferences.Editor editor = settings.edit();      
+		editor.putString("host", host);           
+		editor.commit();
 	}
 	/**
 	 * @return the host
 	 */
 	public String getHost() {
-		return "http://192.168.0.28:1978";
+		return host;
 	}
 	
 	public int getCurrentProfile() {
@@ -129,5 +198,34 @@ public class Knots extends Application {
 	public void setCurrentProfile(int i) {
 		// TODO Auto-generated method stub
 		mCurrentProfile = i;
-	}	
+		SharedPreferences.Editor editor = settings.edit();      
+		editor.putInt("profile", i);      
+		editor.commit();
+	}
+
+	public void setUser(String user) {
+		mUserName = user;
+		SharedPreferences.Editor editor = settings.edit();      
+		editor.putString("username", user);      
+		editor.commit();
+	}
+	
+	public void setUserPassword( String pass ) {
+		mUserPassword = pass; 
+		SharedPreferences.Editor editor = settings.edit();      
+		editor.putString("password", pass);      
+		editor.commit();
+	}
+
+
+	public String getUserName() {
+		return mUserName;
+	}
+
+
+	public String getUserPassword() {
+		return mUserPassword;
+	}
+		
+	
 }

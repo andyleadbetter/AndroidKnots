@@ -88,14 +88,14 @@ public class KnotsItem {
 	}
 
 
-	public synchronized void getItemImage(ImageView imagePlaceHolder) {
+	public synchronized void getItemImage(ImageView imagePlaceHolder, Knots application) {
 
 		try
 		{
 			String mid = fields.get("mid");
 			
 			if ( fields.keySet().contains("mid") && !mid.equals("" )) {
-				String url = new String(  "http://192.168.0.28:1978/root/resource_file?type=screenshot&mid=" + fields.get("mid") + "&mediatype=0" );									
+				String url = new String(  application.getHost() + "/root/resource_file?type=screenshot&mid=" + fields.get("mid") + "&mediatype=0" );									
 				mApplication.getImageDownloadCache().download(url, imagePlaceHolder );					
 			} else if( type == DIR ) {
 				imagePlaceHolder.setImageResource(R.drawable.knots_dir);

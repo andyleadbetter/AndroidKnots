@@ -44,9 +44,12 @@ import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * This helper class download images from the Internet and binds those with the provided ImageView.
@@ -171,8 +174,10 @@ public class ImageDownloader {
 			/* Create a URL we want to load some xml-data from. */
 			URL url = new URL( theBitmapUrl );
 			
-			urlConnection = (HttpURLConnection) url.openConnection();
-			Log.d("BitmapTask","Using Cache " + (urlConnection.getUseCaches()==true ? "True":"False"));
+			urlConnection =  ( HttpURLConnection )url.openConnection();
+			urlConnection.setUseCaches(true);
+			
+			
 
 			/* Parse the xml-data from our URL. */
 			InputStream in = new BufferedInputStream(urlConnection.getInputStream());
@@ -184,10 +189,7 @@ public class ImageDownloader {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally {
-			
-        	if( urlConnection != null )
-        		urlConnection.disconnect();
+		} finally {			       
         }
         return theDownloadedBitmap;
     }

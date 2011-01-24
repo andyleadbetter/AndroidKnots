@@ -43,26 +43,36 @@ public final class R {
         public static final int stub=0x7f02001d;
     }
     public static final class id {
+        public static final int EditText_pw=0x7f060005;
+        public static final int EditText_server=0x7f060003;
+        public static final int EditText_user=0x7f060004;
         public static final int image=0x7f060000;
         public static final int list=0x7f060002;
-        public static final int quit=0x7f060004;
+        public static final int login=0x7f060008;
+        public static final int quit=0x7f060007;
         public static final int text=0x7f060001;
-        public static final int videoviewid=0x7f060003;
+        public static final int videoviewid=0x7f060006;
     }
     public static final class layout {
         public static final int item=0x7f030000;
         public static final int main=0x7f030001;
-        public static final int videoview=0x7f030002;
+        public static final int serveroptions=0x7f030002;
+        public static final int videoview=0x7f030003;
     }
     public static final class menu {
         public static final int main=0x7f050000;
     }
     public static final class string {
-        public static final int app_name=0x7f040001;
-        public static final int choose_profile=0x7f040002;
-        public static final int hello=0x7f040000;
-        public static final int profiles_menu=0x7f040004;
-        public static final int quit=0x7f040003;
-        public static final int server=0x7f040005;
+        public static final int app_name=0x7f040004;
+        public static final int cancel=0x7f040009;
+        public static final int choose_profile=0x7f040005;
+        public static final int hello=0x7f040003;
+        public static final int loginOptions=0x7f040008;
+        public static final int ok=0x7f04000a;
+        public static final int passwordHint=0x7f040000;
+        public static final int profiles_menu=0x7f040007;
+        public static final int quit=0x7f040006;
+        public static final int serverHint=0x7f040002;
+        public static final int userNameHint=0x7f040001;
     }
 }

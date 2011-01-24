@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="passwordHint">Password</string>
+    <string name="userNameHint">User name</string>
+    <string name="serverHint">Server name</string>
     <string name="hello">Hello World, Knots!</string>
     <string name="app_name">Knots2 (vlc)</string>
 <string name="choose_profile">Choose Profile</string>
 <string name="quit">Quit</string>
 <string name="profiles_menu">Profile</string>
-<string name="server">&quot;http://192.168.0.28:1978&quot;</string>
+<string name="loginOptions">Login Options</string>
+<string name="cancel">Cancel</string>
+<string name="ok">Ok</string>
 </resources>

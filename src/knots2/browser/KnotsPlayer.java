@@ -1,7 +1,9 @@
 package knots2.browser;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -156,6 +158,7 @@ public class KnotsPlayer extends Activity implements
 	}
 
 	public void onCompletion(final MediaPlayer mp) {
+		mVideoView.stopPlayback();		
 		finish();
 	}
 
@@ -203,7 +206,7 @@ public class KnotsPlayer extends Activity implements
 	}
 
 	public boolean onError(final MediaPlayer mp, final int what, final int extra) {
-		finish();
+		mVideoView.stopPlayback();		
 		return false;
 	}
 
@@ -236,8 +239,6 @@ public class KnotsPlayer extends Activity implements
 	}
 
 	public void pause() {
-		// TODO Auto-generated method stub
-
 	}
 
 	public void seekTo(final int pos) {
@@ -247,13 +248,12 @@ public class KnotsPlayer extends Activity implements
 		try {
 			final float percentage = (float) pos / (float) getDuration();
 
-			final HttpGet method = new HttpGet(mApplication.getHost()
+			URL seekRequest = new URL(mApplication.getHost()
 					+ "/external/seek?player_id=" + mApplication.getPlayerId()
 					+ "&position=" + Float.toString(percentage));
-			final HttpClient client = new DefaultHttpClient();
-			final String txtResult = new String();
-			final HttpResponse response = client.execute(method);
-			HttpHelper.request(response);
+
+			String txtResult = Utils.readUrlResponse(seekRequest);
+
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -275,32 +275,31 @@ public class KnotsPlayer extends Activity implements
 
 	}
 
+	
+	
 	void startPlayer(final String mediaId) {
 
 		try {
-			final HttpGet method = new HttpGet(mApplication.getHost()
+			
+			URL startRequest = new URL( mApplication.getHost()
 					+ "/external/play?profile="
 					+ Integer.toString(mApplication.getCurrentProfile())
 					+ "&id=" + mediaId);
-			final HttpClient client = new DefaultHttpClient();
-			String txtResult = new String();
-
-			final HttpResponse response = client.execute(method);
-			txtResult = HttpHelper.request(response);
+						
+			String txtResult = Utils.readUrlResponse(startRequest);
+			
 			mApplication.setPlayerId(txtResult.split(":")[0]);
-			mApplication.setPassword(txtResult.split(":")[1]);
+			mApplication.setMediaPassword(txtResult.split(":")[1]);
 			
 			updateProperties();
 			
 			startPropertyUpdates();
+			
 			mVideoView.setVideoURI(mPlayerProperties.get_streamUrl());
 			mVideoView.start();
 			showDialog("Loading");
 			
 			// if the stream url changed the update the media player
-
-
-
 
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -318,15 +317,15 @@ public class KnotsPlayer extends Activity implements
 		if (mApplication.getPlayerId() != null) {
 			stopPropertyUpdates();
 			mVideoView.stopPlayback(); 
-			/* Create a URL we want to load some xml-data from. */
-			final HttpClient client = new DefaultHttpClient();
-			final HttpGet method = new HttpGet(
-					mApplication.getString(R.string.server) + "/root/stop?id="
-							+ mApplication.getPlayerId());
+			URL stopRequest;
 			try {
-				final HttpResponse response = client.execute(method);
-				HttpHelper.request(response);
+				stopRequest = new URL( mApplication.getHost() + "/root/stop?id=" + mApplication.getPlayerId());
+				String txtResult = Utils.readUrlResponse(stopRequest);
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			} catch (final Exception ex) {
+				ex.printStackTrace();
 			}
 		}
 	}
