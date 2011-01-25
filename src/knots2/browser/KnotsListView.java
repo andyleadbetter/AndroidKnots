@@ -47,6 +47,7 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -75,6 +76,7 @@ public class KnotsListView extends Activity {
 	@Override
 	public void onDestroy() {		
 
+		cancelCurrentLoad();
 		super.onDestroy();
 	}
 
@@ -114,6 +116,7 @@ public class KnotsListView extends Activity {
 				mTask.cancel(true);
 				mTask.wait();
 			}
+			mApplication.getImageDownloadCache().cancelPendingDownloads();
 		}
 		catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -125,7 +128,8 @@ public class KnotsListView extends Activity {
 		// if we are asked to load an item while still loading current one, 
 		// cancel it and kick off new download.
 		cancelCurrentLoad();
-
+		
+		
 		// create new task
 
 		mTask=new KnotsListDownload();

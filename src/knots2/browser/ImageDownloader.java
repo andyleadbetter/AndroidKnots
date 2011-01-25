@@ -47,6 +47,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -60,10 +61,18 @@ import javax.net.ssl.HttpsURLConnection;
  * A local cache of downloaded images is maintained internally to improve performance.
  */
 public class ImageDownloader {
-    private static final String LOG_TAG = "ImageDownloader";
+	
+    public ImageDownloader() {
+		super();
+		mPendingTasks = new LinkedList<BitmapDownloaderTask>();
+	}
+
+
+	private static final String LOG_TAG = "ImageDownloader";
 
     public enum Mode { NO_ASYNC_TASK, NO_DOWNLOADED_DRAWABLE, CORRECT }
-    private Mode mode = Mode.CORRECT;
+    private Mode mode = Mode.NO_ASYNC_TASK;
+    private LinkedList<BitmapDownloaderTask> mPendingTasks;
     
     /**
      * Download the specified image from the Internet and binds it to the provided ImageView. The
@@ -73,12 +82,12 @@ public class ImageDownloader {
      * @param url The URL of the image to download.
      * @param imageView The ImageView to bind the downloaded image to.
      */
-    public void download(String url, ImageView imageView) {
+    public void download(final String url, final ImageView imageView) {
         resetPurgeTimer();
         Bitmap bitmap = getBitmapFromCache(url);
 
         if (bitmap == null) {
-            forceDownload(url, imageView);
+        	forceDownload(url, imageView);        	
         } else {
             cancelPotentialDownload(url, imageView);
             imageView.setImageBitmap(bitmap);
@@ -176,8 +185,6 @@ public class ImageDownloader {
 			
 			urlConnection =  ( HttpURLConnection )url.openConnection();
 			urlConnection.setUseCaches(true);
-			
-			
 
 			/* Parse the xml-data from our URL. */
 			InputStream in = new BufferedInputStream(urlConnection.getInputStream());
@@ -201,6 +208,7 @@ public class ImageDownloader {
     class BitmapDownloaderTask extends AsyncTask<String, Void, Bitmap> {
         private String url;
         private final WeakReference<ImageView> imageViewReference;
+		
 
         public BitmapDownloaderTask(ImageView imageView) {
             imageViewReference = new WeakReference<ImageView>(imageView);
@@ -214,12 +222,19 @@ public class ImageDownloader {
             url = params[0];
             return downloadBitmap(url);
         }
+        
+        @Override
+        protected void onPreExecute(){
+        	mPendingTasks.add(this);
+        	
+        }
 
         /**
          * Once the image is downloaded, associates it to the imageView
          */
         @Override
         protected void onPostExecute(Bitmap bitmap) {
+        	mPendingTasks.remove(this);
             if (isCancelled()) {
                 bitmap = null;
             }
@@ -265,6 +280,19 @@ public class ImageDownloader {
         clearCache();
     }
 
+    public void cancelPendingDownloads() {
+    	for (BitmapDownloaderTask task : mPendingTasks ) {
+    		try {
+    			task.cancel(true);
+    		
+				task.wait(100);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    }
+    
     
     /*
      * Cache-related fields and methods.

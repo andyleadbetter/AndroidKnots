@@ -99,12 +99,23 @@ public class KnotsPlayer extends Activity implements
 		}
 	}
 
+	private final Runnable mUpdatePropertiesThread = new Runnable() {
 		
-	private final Runnable mUpdatePropertiesTask = new Runnable() {
 		public void run() {
 			updateProperties();
 			
-			mHandler.postDelayed(mUpdatePropertiesTask, 5000);
+		}
+	};
+		
+	private final Runnable mUpdatePropertiesTask = new Runnable() {
+		public void run() {
+			
+			
+			Thread updater = new Thread(mUpdatePropertiesThread);
+			updater.setPriority(Thread.MIN_PRIORITY);
+			updater.start();
+			
+			mHandler.postDelayed(mUpdatePropertiesTask, 10000);
 		}
 	};
 
