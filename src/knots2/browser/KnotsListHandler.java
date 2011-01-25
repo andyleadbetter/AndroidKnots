@@ -16,9 +16,9 @@ public class KnotsListHandler extends DefaultHandler{
 	// ===========================================================
 	
 	private KnotsItem currentItem;
-	private KnotsPage currentPage;
-	private KnotsAdapter listAdapter;
-	
+	private int mCurrentPage;
+	private int mTotalPages;
+		
 	// Buffer for collecting data from
     // the "characters" SAX event.
     private CharArrayWriter contents = new CharArrayWriter();
@@ -33,11 +33,8 @@ public class KnotsListHandler extends DefaultHandler{
     };
     
     private CurrentState status;
-	private String mCurrentElement;
+	
 	private KnotsListHandlerObserver mParserObserver;
-	private int mTotalEntries = 0;
-	private int mCount = 0;
-	private ImageDownloader mAsyncLoader;
     
 	public KnotsListHandler( KnotsListHandlerObserver parserObserver) {
 		
@@ -75,8 +72,7 @@ public class KnotsListHandler extends DefaultHandler{
 		if( localName.equals("item")) {
 			currentItem = new KnotsItem(mParserObserver.getApplication());
 			status = CurrentState.ParsingItem;
-		} else if( localName.equals("pages")) {
-			currentPage = new KnotsPage();		
+		} else if( localName.equals("pages")) {				
 			status = CurrentState.ParsingPage;
 		} else if( localName.equals("items")) {
 			status = CurrentState.ParsingItems;
@@ -107,18 +103,19 @@ public class KnotsListHandler extends DefaultHandler{
 						
 		} else if( status == CurrentState.ParsingPage ) {
 			if (localName.equals("current")) {
-					currentPage.setCurrentPage(Integer.parseInt(contents.toString().trim()));
+					mCurrentPage = Integer.parseInt(contents.toString().trim());
 			}else if (localName.equals("total")) {
-					currentPage.setTotalPages(Integer.parseInt(contents.toString().trim()));
+					mTotalPages = Integer.parseInt(contents.toString().trim());
+			}else if ( localName.equals("pages")) {
+				mParserObserver.onPageUpdate(mCurrentPage, mTotalPages);
 			}
+			
 		}
 	}
 		
 	public void sendItemUpdate( KnotsItem item ) {
 		KnotsListHandlerUpdate newItem = new KnotsListHandlerUpdate();
 		newItem.setItem(item);
-		newItem.setCurrentItem(mCount++);
-		newItem.setTotalItems(mTotalEntries);
 		mParserObserver.onNewItem(newItem);		
 	}
 	

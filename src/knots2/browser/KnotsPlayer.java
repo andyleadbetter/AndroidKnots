@@ -259,11 +259,16 @@ public class KnotsPlayer extends Activity implements
 		try {
 			final float percentage = (float) pos / (float) getDuration();
 
+			// Until next update fake the position to the requested seek;
+			mPlayerProperties.set_position(percentage);
+			
 			URL seekRequest = new URL(mApplication.getHost()
 					+ "/external/seek?player_id=" + mApplication.getPlayerId()
 					+ "&position=" + Float.toString(percentage));
 
 			String txtResult = Utils.readUrlResponse(seekRequest);
+			
+			
 
 		} catch (final Exception e) {
 			e.printStackTrace();

@@ -1,8 +1,10 @@
 package knots2.browser;
 
 import java.net.Authenticator;
+import java.net.ContentHandler;
 import java.net.PasswordAuthentication;
 import java.net.URL;
+import java.net.URLStreamHandlerFactory;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -20,8 +22,13 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
+import com.google.android.imageloader.BitmapContentHandler;
+import com.google.android.imageloader.ImageLoader;
+
 import android.app.Application;
+import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
 
 public class Knots extends Application {
 
@@ -29,13 +36,13 @@ public class Knots extends Application {
 	public static final String KNOTS_INTENT_ACTION_PLAY = "knots2.browser.action.play";
 	public static final String KNOTS_INTENT_EXTRA_MEDIA = "knots2.browser.media" ;
 	public static final String KNOTS_INTENT_EXTRA_PATH = "knots2.browser.path" ;
-	
+
 	private String playerId;    
 	private String mMediaPassword;
 	private String media;
 	private String host;
 	private int mCurrentProfile = 6;
-	private ImageDownloader mImageDownloadCache;
+	private ImageLoader mImageDownloadCache;
 	private Vector<Profile> mProfiles;
 	private String mUserName;
 	private String mUserPassword;
@@ -45,31 +52,31 @@ public class Knots extends Application {
 		return mProfiles;
 	}
 	private void trustEveryone() {
-        try {
-                HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
-                        public boolean verify(String hostname, SSLSession session) {
-                                return true;
-                        }});
-                SSLContext context = SSLContext.getInstance("TLS");
-                context.init(null, new X509TrustManager[]{new X509TrustManager(){
-                        public void checkClientTrusted(X509Certificate[] chain,
-                                        String authType) throws CertificateException {}
-                        public void checkServerTrusted(X509Certificate[] chain,
-                                        String authType) throws CertificateException {}
-                        public X509Certificate[] getAcceptedIssuers() {
-                                return new X509Certificate[0];
-                        }}}, new SecureRandom());
-                HttpsURLConnection.setDefaultSSLSocketFactory(
-                                context.getSocketFactory());
-        } catch (Exception e) { // should never happen
-                e.printStackTrace();
-        }
-}
+		try {
+			HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
+				public boolean verify(String hostname, SSLSession session) {
+					return true;
+				}});
+			SSLContext context = SSLContext.getInstance("TLS");
+			context.init(null, new X509TrustManager[]{new X509TrustManager(){
+				public void checkClientTrusted(X509Certificate[] chain,
+						String authType) throws CertificateException {}
+				public void checkServerTrusted(X509Certificate[] chain,
+						String authType) throws CertificateException {}
+				public X509Certificate[] getAcceptedIssuers() {
+					return new X509Certificate[0];
+				}}}, new SecureRandom());
+			HttpsURLConnection.setDefaultSSLSocketFactory(
+					context.getSocketFactory());
+		} catch (Exception e) { // should never happen
+			e.printStackTrace();
+		}
+	}
 
-	
+
 	public void onCreate() {
 		super.onCreate();
-		mImageDownloadCache = new ImageDownloader();
+		mImageDownloadCache = Knots.createImageLoader(this);
 		trustEveryone();
 		//		Restore preferences       
 		settings = getSharedPreferences(PREFS_NAME, 0);    
@@ -77,12 +84,35 @@ public class Knots extends Application {
 		mUserName = settings.getString("username", "andy");
 		mUserPassword = settings.getString("password", "andy");
 		mCurrentProfile = settings.getInt("profile", 6);
-		
+
 		Authenticator.setDefault( new Authenticator(){
 			protected PasswordAuthentication getPasswordAuthentication() {
 				return new PasswordAuthentication(getUserName(),getUserPassword().toCharArray());     }}); 
 		mProfiles = loadProfiles();
 
+	}
+	private static ImageLoader createImageLoader(Context context) {
+		// Install the file cache (if it is not already installed)
+		FileCache.install(context);
+
+		// Just use the default URLStreamHandlerFactory because
+		// it supports all of the required URI schemes (http).
+		URLStreamHandlerFactory streamFactory = null;
+
+		// Load images using a BitmapContentHandler
+		// and cache the image data in the file cache.
+		ContentHandler bitmapHandler = FileCache.capture(new BitmapContentHandler(), null);
+
+		// For pre-fetching, use a "sink" content handler so that the
+		// the binary image data is captured by the cache without actually
+		// parsing and loading the image data into memory. After pre-fetching,
+		// the image data can be loaded quickly on-demand from the local cache.
+		ContentHandler prefetchHandler = FileCache.capture(FileCache.sink(), null);
+
+		// Perform callbacks on the main thread
+		Handler handler = null;
+
+		return new ImageLoader(streamFactory, bitmapHandler, prefetchHandler, handler);
 	}
 
 
@@ -90,7 +120,7 @@ public class Knots extends Application {
 	public Knots() {
 
 	}
-	
+
 	private Vector<Profile> loadProfiles() {
 
 		Vector<Profile> profiles = null;
@@ -116,7 +146,7 @@ public class Knots extends Application {
 			profiles = myExampleHandler.getParsedData();
 			boolean profileFound = false;
 			for (Profile profile : profiles) {
-				
+
 				if( profile.getIntegerId()==mCurrentProfile) {
 					profileFound = true;
 					break;				
@@ -133,8 +163,8 @@ public class Knots extends Application {
 		return profiles;
 
 	}
-	
-	public ImageDownloader getImageDownloadCache() {
+
+	public ImageLoader getImageDownloadCache() {
 		return mImageDownloadCache;
 	}
 
@@ -190,11 +220,11 @@ public class Knots extends Application {
 	public String getHost() {
 		return host;
 	}
-	
+
 	public int getCurrentProfile() {
 		return mCurrentProfile;
 	}
-	
+
 	public void setCurrentProfile(int i) {
 		// TODO Auto-generated method stub
 		mCurrentProfile = i;
@@ -209,7 +239,7 @@ public class Knots extends Application {
 		editor.putString("username", user);      
 		editor.commit();
 	}
-	
+
 	public void setUserPassword( String pass ) {
 		mUserPassword = pass; 
 		SharedPreferences.Editor editor = settings.edit();      
@@ -226,6 +256,6 @@ public class Knots extends Application {
 	public String getUserPassword() {
 		return mUserPassword;
 	}
-		
-	
+
+
 }

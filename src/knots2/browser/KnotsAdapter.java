@@ -81,7 +81,7 @@ public class KnotsAdapter extends BaseAdapter {
             holder=(ViewHolder)vi.getTag();
         
         holder.text.setText(item.getText());              
-        item.getItemImage( holder.image, application );
+        item.getItemImage(this,  holder.image, application );
         holder.item = item;
         
         return vi;

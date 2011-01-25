@@ -18,7 +18,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import knots2.browser.KnotsListView.KnotsListDownload;
+import knots2.browser.R.string;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -111,25 +111,19 @@ public class KnotsListView extends Activity {
 	}
 
 	private void cancelCurrentLoad() {
-		try {
+
 			if( mTask != null && mTask.getStatus()==AsyncTask.Status.RUNNING ) {			
 				mTask.cancel(true);
-				mTask.wait();
 			}
-			mApplication.getImageDownloadCache().cancelPendingDownloads();
-		}
-		catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 	}
 	private void loadDirectory(String currentPath) {
 
 		// if we are asked to load an item while still loading current one, 
 		// cancel it and kick off new download.
 		cancelCurrentLoad();
-		
-		
+
+
 		// create new task
 
 		mTask=new KnotsListDownload();
@@ -290,186 +284,189 @@ public class KnotsListView extends Activity {
 	}
 
 
-private void browseVirtual( String virtualPath ) {
+	private void browseVirtual( String virtualPath ) {
 
-	// this is the base path to pull items from
-	String externalPath = mApplication.getHost() + "/external/browse?virtual=";
-	// Add the new sub tree to the URL, the root path is fetched with empty Path
-	if( virtualPath != "" ) {
-		externalPath += URLEncoder.encode(virtualPath);
-	}
-
-	loadDirectory(externalPath);
-}
-
-
-private void browseByPath( String path ) {
-	// this is the base path to pull items from
-	String externalPath = mApplication.getHost() + "/external/browse?format=xml";
-
-	// Add the new sub tree to the URL, the root path is fetched with empty Path
-	if( path != "" ) {
-		externalPath += "&path=" + path;
-	}
-
-	loadDirectory(externalPath);
-}
-
-
-
-
-private void addProfiles( Menu mainMenu ) {
-
-	SubMenu profilesMenu = mainMenu.addSubMenu(R.string.profiles_menu);
-	profilesMenu.setGroupCheckable( PROFILES_GROUP, true, true);
-	profilesMenu.setIcon(R.drawable.knots_button_player);
-
-	Iterator<Profile> itr = mApplication.getProfiles().iterator();		
-	while(itr.hasNext())
-	{
-		Profile profile = itr.next();
-		MenuItem newItem = profilesMenu.add( PROFILES_GROUP, profile.getIntegerId(), Menu.NONE, profile.getName());
-		// If this item is the current profile tag it as checked.
-		newItem.setChecked( newItem.getItemId() == currentProfile );				
-	}
-}
-
-private void setCurrentProfile( MenuItem item ) {	
-	mApplication.setCurrentProfile( item.getItemId() );				
-}
-public abstract interface KnotsListHandlerObserver {
-	abstract public void onNewItem( KnotsListHandlerUpdate newItem );
-	abstract public Knots getApplication();
-}
-
-private class DownloadTaskArgs {
-	private String mPath;
-	private KnotsListView mView;		
-
-	public DownloadTaskArgs( String path, KnotsListView view) {
-		mView = view;
-		mPath = path;
-	}
-
-	public synchronized String getPath() {
-		return mPath;
-	}
-
-
-}
-
-static public class KnotsListHandlerUpdate {
-	private KnotsItem mItem;
-	private int mTotalItems;
-	private int mCurrentItem;
-
-	/**
-	 * @return the mItem
-	 */
-	public KnotsItem getItem() {
-		return mItem;
-	}
-	/**
-	 * @param mItem the mItem to set
-	 */
-	public void setItem(KnotsItem item) {
-		this.mItem = item;
-	}
-	/**
-	 * @return the mTotalItems
-	 */
-	public int getTotalItems() {
-		return mTotalItems;
-	}
-	/**
-	 * @param mTotalItems the mTotalItems to set
-	 */
-	public void setTotalItems(int totalItems) {
-		this.mTotalItems = totalItems;
-	}
-	/**
-	 * @return the mCurrentItem
-	 */
-	public int getCurrentItem() {
-		return mCurrentItem;
-	}
-	/**
-	 * @param mCurrentItem the mCurrentItem to set
-	 */
-	public void setCurrentItem(int currentItem) {
-		this.mCurrentItem = currentItem;
-	}
-}
-
-public class KnotsListDownload extends AsyncTask<Void, KnotsListHandlerUpdate, Void > implements KnotsListHandlerObserver {
-
-	DownloadTaskArgs mArgs;
-
-	public void setArgs( DownloadTaskArgs args ) {
-		mArgs = args;
-	}
-	public Knots getApplication() {
-		return (Knots)mArgs.mView.getApplication();
-	}
-
-	private void loadDirectory( DownloadTaskArgs args ) {
-		HttpURLConnection urlConnection = null;
-		try {
-			 
-			/* Create a URL we want to load some xml-data from. */
-			URL url = new URL( args.getPath() );
-			urlConnection = (HttpURLConnection) url.openConnection();
-			urlConnection.setUseCaches(true);
-			urlConnection.connect();
-
-			/* Get a SAXParser from the SAXPArserFactory. */
-			SAXParserFactory spf = SAXParserFactory.newInstance();
-			SAXParser sp = spf.newSAXParser();
-
-			/* Get the XMLReader of the SAXParser we created. */
-			XMLReader xr = sp.getXMLReader();
-			/* Create a new ContentHandler and apply it to the XML-Reader*/ 
-			KnotsListHandler folderHandler = new KnotsListHandler((KnotsListHandlerObserver)this);
-
-			xr.setContentHandler(folderHandler);
-
-			/* Parse the xml-data from our URL. */
-			InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-
-			xr.parse(new InputSource(in));
-			/* Parsing has finished. */
-
-		} 
-
-		catch (Exception e) {
-			/* Display any Error to the GUI. */						
-		}	
-		finally {     
-			urlConnection.disconnect();   
+		// this is the base path to pull items from
+		String externalPath = mApplication.getHost() + "/external/browse?virtual=";
+		// Add the new sub tree to the URL, the root path is fetched with empty Path
+		if( virtualPath != "" ) {
+			externalPath += URLEncoder.encode(virtualPath);
 		}
 
+		loadDirectory(externalPath);
 	}
 
-	public void onNewItem(KnotsListHandlerUpdate newItem) {
-		publishProgress(newItem);			
+
+	private void browseByPath( String path ) {
+		// this is the base path to pull items from
+		String externalPath = mApplication.getHost() + "/external/browse?format=xml";
+
+		// Add the new sub tree to the URL, the root path is fetched with empty Path
+		if( path != "" ) {
+			externalPath += "&path=" + path;
+		}
+
+		loadDirectory(externalPath);
 	}
 
-	protected void onProgressUpdate(KnotsListHandlerUpdate... progress) {     
 
-		mArgs.mView.mApdapter.addItem(progress[0].getItem());     
+
+
+	private void addProfiles( Menu mainMenu ) {
+
+		SubMenu profilesMenu = mainMenu.addSubMenu(R.string.profiles_menu);
+		profilesMenu.setGroupCheckable( PROFILES_GROUP, true, true);
+		profilesMenu.setIcon(R.drawable.knots_button_player);
+
+		Iterator<Profile> itr = mApplication.getProfiles().iterator();		
+		while(itr.hasNext())
+		{
+			Profile profile = itr.next();
+			MenuItem newItem = profilesMenu.add( PROFILES_GROUP, profile.getIntegerId(), Menu.NONE, profile.getName());
+			// If this item is the current profile tag it as checked.
+			newItem.setChecked( newItem.getItemId() == currentProfile );				
+		}
 	}
 
-	@Override
-	protected Void doInBackground(Void... params) {
-		loadDirectory(mArgs);
-		return null;
+	private void setCurrentProfile( MenuItem item ) {	
+		mApplication.setCurrentProfile( item.getItemId() );				
+	}
+	public abstract interface KnotsListHandlerObserver {
+		abstract public void onNewItem( KnotsListHandlerUpdate newItem );
+		abstract public Knots getApplication();
+		abstract public void onPageUpdate( int currentPage, int totalPages );
 	}
 
-	protected void onPostExecute(Void result) {
+	private class DownloadTaskArgs {
+		private String mPath;
+		private KnotsListView mView;		
+
+		public DownloadTaskArgs( String path, KnotsListView view) {
+			mView = view;
+			mPath = path;
+		}
+
+		public synchronized String getPath() {
+			return mPath;
+		}
+
+
 	}
 
-	protected void onPreExecute() {		
-		mArgs.mView.mApdapter.clear();
+	static public class KnotsListHandlerUpdate {
+		private KnotsItem mItem;
+
+
+		/**
+		 * @return the mItem
+		 */
+		public KnotsItem getItem() {
+			return mItem;
+		}
+		/**
+		 * @param mItem the mItem to set
+		 */
+		public void setItem(KnotsItem item) {
+			this.mItem = item;
+		}
 	}
-}
+
+
+	public class KnotsListDownload extends AsyncTask<Void, KnotsListHandlerUpdate, Void > implements KnotsListHandlerObserver {
+
+		DownloadTaskArgs mArgs;
+		int mCurrentPage = 0;
+		int mTotalPages = 0;
+
+		public void setArgs( DownloadTaskArgs args ) {
+			mArgs = args;
+		}
+		public Knots getApplication() {
+			return (Knots)mArgs.mView.getApplication();
+		}
+
+		private void loadDirectory( DownloadTaskArgs args ) {
+			HttpURLConnection urlConnection = null;
+			try {
+
+				/* Create a URL we want to load some xml-data from. */
+				String pages = "";
+				boolean morePages = false;
+
+				do {
+					URL url = new URL( args.getPath() + pages );
+
+					urlConnection = (HttpURLConnection) url.openConnection();
+					urlConnection.setUseCaches(true);
+					urlConnection.connect();
+
+
+					/* Get a SAXParser from the SAXPArserFactory. */
+					SAXParserFactory spf = SAXParserFactory.newInstance();
+					SAXParser sp = spf.newSAXParser();
+
+					/* Get the XMLReader of the SAXParser we created. */
+					XMLReader xr = sp.getXMLReader();
+					/* Create a new ContentHandler and apply it to the XML-Reader*/ 
+					KnotsListHandler folderHandler = new KnotsListHandler((KnotsListHandlerObserver)this);
+
+					xr.setContentHandler(folderHandler);
+
+					/* Parse the xml-data from our URL. */
+					InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+
+					xr.parse(new InputSource(in));
+					in.close();
+					urlConnection.disconnect();
+
+					/* Parsing has finished. 
+					 * any more pages ?
+					 */
+					morePages = this.mCurrentPage < this.mTotalPages; 
+
+					if( morePages ) {
+						pages = "&page=" + Integer.toString(mCurrentPage+1);
+					}
+					
+				} while( morePages );
+
+			} 
+
+			catch (Exception e) {
+				/* Display any Error to the GUI. */						
+			}	
+			finally {     				
+				urlConnection.disconnect();   
+			}
+
+		}
+		
+		public void onPageUpdate( int currentPage, int totalPages ) {
+
+			mTotalPages = totalPages;
+			mCurrentPage = currentPage;
+		}
+
+		public void onNewItem(KnotsListHandlerUpdate newItem) {
+			publishProgress(newItem);		
+		}
+
+		protected void onProgressUpdate(KnotsListHandlerUpdate... progress) {     
+
+			mArgs.mView.mApdapter.addItem(progress[0].getItem());     
+		}
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			loadDirectory(mArgs);
+			return null;
+		}
+
+		protected void onPostExecute(Void result) {
+		}
+
+		protected void onPreExecute() {		
+			mArgs.mView.mApdapter.clear();
+		}
+	}
 }

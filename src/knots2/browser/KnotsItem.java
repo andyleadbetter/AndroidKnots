@@ -13,6 +13,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
 /**
@@ -88,7 +89,7 @@ public class KnotsItem {
 	}
 
 
-	public synchronized void getItemImage(ImageView imagePlaceHolder, Knots application) {
+	public synchronized void getItemImage(BaseAdapter adapter, ImageView imagePlaceHolder, Knots application) {
 
 		try
 		{
@@ -96,7 +97,7 @@ public class KnotsItem {
 			
 			if ( fields.keySet().contains("mid") && !mid.equals("" )) {
 				String url = new String(  application.getHost() + "/root/resource_file?type=screenshot&mid=" + fields.get("mid") + "&mediatype=0" );									
-				mApplication.getImageDownloadCache().download(url, imagePlaceHolder );					
+				mApplication.getImageDownloadCache().bind(adapter, imagePlaceHolder, url);					
 			} else if( type == DIR ) {
 				imagePlaceHolder.setImageResource(R.drawable.knots_dir);
 			} else if ( type == SERVER ) {
