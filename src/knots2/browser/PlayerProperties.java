@@ -37,6 +37,7 @@ public class PlayerProperties  extends DefaultHandler {
 		private String _title;
 	    private String _video_height;
 	    private String _video_width;
+	    
 	    // Buffer for collecting data from
 		// the "characters" SAX event.
 		private CharArrayWriter xmlContentArray = new CharArrayWriter();
@@ -55,21 +56,28 @@ public class PlayerProperties  extends DefaultHandler {
 		@Override
 		public void endDocument() throws SAXException {
 
-			String url;
-	        
-			url = "rtsp://";
-	        
+			String url;	        
+			url = "rtsp://";	        
 	        if( _playerId != null )
-	        {
-	        	url += _playerId + ":" + _password + "@";
-	        }
-	        
+//	        {
+//	        	url += _playerId + ":" + _password + "@";
+//	        }	        
 	        url += "192.168.0.28:8080";
-	        url += "/stream.sdp";
-	        
+	        url += "/stream.sdp";	        
 	        _streamUrl = Uri.parse(url);
+//	        
+//		
+			
+//			url = "http://";	        
+//	        if( _playerId != null )
+	        {
+//	        	url += _playerId + ":" + _password + "@";
+	        }	        
+//	        url = "http://192.168.0.28" + ":" + _port +"/"+ _stream;
 	        
-		}
+//	        _streamUrl = Uri.parse(url);
+			
+			}
 
 		/** Gets be called on closing tags like: 
 		 * </tag> */
@@ -408,5 +416,13 @@ public class PlayerProperties  extends DefaultHandler {
 				String qName, Attributes atts) throws SAXException {
 
 			xmlContentArray.reset();
+		}
+
+		public void setPlayerId(String playerId) {
+		    this._playerId = playerId; 
+		}
+
+		public void setMediaPassword(String mediaPassword) {
+			_password = mediaPassword;			
 		}
 	}

@@ -1,10 +1,19 @@
 package knots2.browser;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Authenticator;
 import java.net.ContentHandler;
+import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -29,13 +38,23 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
+import android.text.AndroidCharacter;
+import android.util.Base64;
 
 public class Knots extends Application {
 
 	public static final String PREFS_NAME = "MyPrefsFile";    
+	
+	public static final String KNOTS_INTENT_EXTRA_MEDIA = "knots2.browser.extras.media" ;
+	public static final String KNOTS_INTENT_EXTRA_PATH = "knots2.browser.extras.path" ;
+	public static final String KNOTS_INTENT_EXTRA_TAG = "knots2.browser.extras.tag" ;
+	public static final String KNOTS_INTENT_EXTRA_CATEGORY = "knots2.browser.extras.category" ;
+	
 	public static final String KNOTS_INTENT_ACTION_PLAY = "knots2.browser.action.play";
-	public static final String KNOTS_INTENT_EXTRA_MEDIA = "knots2.browser.media" ;
-	public static final String KNOTS_INTENT_EXTRA_PATH = "knots2.browser.path" ;
+	public static final String KNOTS_INTENT_ACTION_VIRTUAL = "knots2.browser.search.virtual";
+	public static final String KNOTS_INTENT_ACTION_CATEGORY = "knots2.browser.search.category";
+	public static final String KNOTS_INTENT_ACTION_TAG = "knots2.browser.search.tag";
+	public static final String KNOTS_INTENT_ACTION_VALUE = "knots2.browser.search.value";
 
 	private String playerId;    
 	private String mMediaPassword;
@@ -48,6 +67,8 @@ public class Knots extends Application {
 	private String mUserPassword;
 	SharedPreferences settings;   
 	TrustManager[] trustAllCerts;
+
+	private int mListLimit;
 	public Vector<Profile> getProfiles() {
 		return mProfiles;
 	}
@@ -84,12 +105,26 @@ public class Knots extends Application {
 		mUserName = settings.getString("username", "andy");
 		mUserPassword = settings.getString("password", "andy");
 		mCurrentProfile = settings.getInt("profile", 6);
+		mListLimit = settings.getInt("listLimit", 100);
 
 		Authenticator.setDefault( new Authenticator(){
 			protected PasswordAuthentication getPasswordAuthentication() {
 				return new PasswordAuthentication(getUserName(),getUserPassword().toCharArray());     }}); 
 		mProfiles = loadProfiles();
 
+	}
+	
+	void authorizeConnection(HttpURLConnection connection)  {
+		try {
+			String base64EncodedCredentials = "";
+			base64EncodedCredentials = Base64.encodeToString(
+			    (getUserName() + ":" + getUserPassword()).getBytes(), Base64.NO_WRAP);
+			
+			connection.addRequestProperty("Authorization", "Basic " + base64EncodedCredentials);
+		} catch (Exception e) {
+			
+			e.printStackTrace();
+		}
 	}
 	private static ImageLoader createImageLoader(Context context) {
 		// Install the file cache (if it is not already installed)
@@ -98,6 +133,9 @@ public class Knots extends Application {
 		// Just use the default URLStreamHandlerFactory because
 		// it supports all of the required URI schemes (http).
 		URLStreamHandlerFactory streamFactory = null;
+		
+		URL.setURLStreamHandlerFactory(streamFactory); 
+
 
 		// Load images using a BitmapContentHandler
 		// and cache the image data in the file cache.
@@ -124,11 +162,19 @@ public class Knots extends Application {
 	private Vector<Profile> loadProfiles() {
 
 		Vector<Profile> profiles = null;
-
+		HttpURLConnection urlConnection;
 		try {
 			/* Create a URL we want to load some xml-data from. */
 			URL url = new URL(getHost() + "/external/transcoding_profiles");
 
+			
+			urlConnection = (HttpURLConnection) url.openConnection();
+			
+			authorizeConnection( urlConnection );
+
+			urlConnection.setUseCaches(true);
+			urlConnection.connect();
+			
 			/* Get a SAXParser from the SAXPArserFactory. */
 			SAXParserFactory spf = SAXParserFactory.newInstance();
 			SAXParser sp = spf.newSAXParser();
@@ -140,7 +186,10 @@ public class Knots extends Application {
 			xr.setContentHandler(myExampleHandler);
 
 			/* Parse the xml-data from our URL. */
-			xr.parse(new InputSource(url.openStream()));
+			final InputStream in = new BufferedInputStream(
+					urlConnection.getInputStream());
+			
+			xr.parse(new InputSource(in));
 			/* Parsing has finished. */
 
 			profiles = myExampleHandler.getParsedData();
@@ -164,6 +213,8 @@ public class Knots extends Application {
 
 	}
 
+
+	
 	public ImageLoader getImageDownloadCache() {
 		return mImageDownloadCache;
 	}
@@ -252,10 +303,17 @@ public class Knots extends Application {
 		return mUserName;
 	}
 
-
 	public String getUserPassword() {
 		return mUserPassword;
 	}
+	public void setListLimit(int limit) {
+		mListLimit = limit;		
+		SharedPreferences.Editor editor = settings.edit();      
+		editor.putInt("listLimit", mListLimit);      
+		editor.commit();
+	}
 
-
+	public int getListLimit( ) {
+		return mListLimit;
+	}
 }

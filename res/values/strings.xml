@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="about">Knots2 will stream media from your PC using. Media is recompressed to H264 high quality video, and can be streamed across internet, or home wifi.</string>
     <string name="passwordHint">Password</string>
     <string name="userNameHint">User name</string>
     <string name="serverHint">Server name</string>
@@ -11,4 +12,6 @@
 <string name="loginOptions">Login Options</string>
 <string name="cancel">Cancel</string>
 <string name="ok">Ok</string>
+<string name="refresh">Refresh</string>
+<string name="options">Options</string>
 </resources>

@@ -18,6 +18,7 @@ public class KnotsListHandler extends DefaultHandler{
 	private KnotsItem currentItem;
 	private int mCurrentPage;
 	private int mTotalPages;
+	private int  mTotalItems;
 		
 	// Buffer for collecting data from
     // the "characters" SAX event.
@@ -35,6 +36,7 @@ public class KnotsListHandler extends DefaultHandler{
     private CurrentState status;
 	
 	private KnotsListHandlerObserver mParserObserver;
+
     
 	public KnotsListHandler( KnotsListHandlerObserver parserObserver) {
 		
@@ -107,7 +109,9 @@ public class KnotsListHandler extends DefaultHandler{
 			}else if (localName.equals("total")) {
 					mTotalPages = Integer.parseInt(contents.toString().trim());
 			}else if ( localName.equals("pages")) {
-				mParserObserver.onPageUpdate(mCurrentPage, mTotalPages);
+				mParserObserver.onPageUpdate(mCurrentPage, mTotalPages, mTotalItems);
+			}else if ( localName.equals("totalitems")) {
+				mTotalItems = Integer.parseInt(contents.toString().trim());
 			}
 			
 		}
