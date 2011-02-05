@@ -14,4 +14,6 @@
 <string name="ok">Ok</string>
 <string name="refresh">Refresh</string>
 <string name="options">Options</string>
+<string name="directory_error">Failed to load directory from the server, you can go back to try again, or check the server is running</string>
+<string name="player_error">Failed to load directory from the server, you can go back to try again, or check the server is running</string>
 </resources>

@@ -2,8 +2,38 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_width="fill_parent" android:layout_height="fill_parent"
 	android:orientation="vertical">
-	<EditText android:id="@+id/EditText_server" android:layout_height="wrap_content" android:layout_width="match_parent" android:hint="@string/serverHint"></EditText>
-	<EditText android:id="@+id/EditText_user" android:layout_height="wrap_content" android:layout_width="match_parent" android:hint="@string/userNameHint"></EditText>
-	<EditText android:id="@+id/EditText_pw" android:layout_height="wrap_content" android:layout_width="match_parent" android:hint="@string/passwordHint"></EditText>
-	<SeekBar android:id="@+id/seekBarLimit" android:layout_height="wrap_content" android:layout_width="match_parent" android:layout_marginLeft="10dip" android:layout_marginRight="10dp"></SeekBar>
+	<EditText android:id="@+id/EditText_server"
+		android:layout_height="wrap_content" android:layout_width="match_parent"
+		android:hint="@string/serverHint"></EditText>
+	<EditText android:id="@+id/EditText_user"
+		android:layout_height="wrap_content" android:layout_width="match_parent"
+		android:hint="@string/userNameHint"></EditText>
+	<EditText android:id="@+id/EditText_pw" android:layout_height="wrap_content"
+		android:layout_width="match_parent" android:hint="@string/passwordHint"></EditText>
+	<TextView android:text="Items To Fetch" android:gravity="center_horizontal"
+		android:layout_width="wrap_content" android:layout_gravity="fill_vertical" android:layout_height="wrap_content"/>
+	  <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">	
+		
+		       <SeekBar
+            android:id="@+id/seekBarLimit"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dip"
+            android:layout_weight="1"
+            android:layout_height="30dip"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true" />
+
+        <TextView android:id="@+id/textView_counter"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingTop="4dip"
+            android:paddingRight="4dip"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4dip" />
+    </LinearLayout>		
 </LinearLayout>

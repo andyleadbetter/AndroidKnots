@@ -149,7 +149,7 @@ public class PlayerProperties  extends DefaultHandler {
 		/**
 		 * @return the _duration
 		 */
-		public int get_duration() {
+		synchronized public int get_duration() {
 			return _duration;
 		}
 
@@ -219,7 +219,7 @@ public class PlayerProperties  extends DefaultHandler {
 		/**
 		 * @return the _position
 		 */
-		public float get_position() {
+		synchronized public float get_position() {
 			return _position;
 		}
 
@@ -289,7 +289,7 @@ public class PlayerProperties  extends DefaultHandler {
 		/**
 		 * @param _duration the _duration to set
 		 */
-		public void set_duration(int _duration) {
+		synchronized public void set_duration(int _duration) {
 			this._duration = _duration;
 		}
 
@@ -359,7 +359,7 @@ public class PlayerProperties  extends DefaultHandler {
 		/**
 		 * @param _position the _position to set
 		 */
-		public void set_position(float _position) {
+		synchronized public void set_position(float _position) {
 			this._position = _position;
 		}
 

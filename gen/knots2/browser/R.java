@@ -50,12 +50,13 @@ public final class R {
         public static final int Gallery01=0x7f060002;
         public static final int image=0x7f060000;
         public static final int list=0x7f060003;
-        public static final int login=0x7f06000a;
-        public static final int quit=0x7f060009;
+        public static final int login=0x7f06000b;
+        public static final int quit=0x7f06000a;
         public static final int seekBarLimit=0x7f060007;
         public static final int text=0x7f060001;
-        public static final int update=0x7f06000b;
-        public static final int videoviewid=0x7f060008;
+        public static final int textView_counter=0x7f060008;
+        public static final int update=0x7f06000c;
+        public static final int videoviewid=0x7f060009;
     }
     public static final class layout {
         public static final int item=0x7f030000;
@@ -72,11 +73,13 @@ public final class R {
         public static final int app_name=0x7f040005;
         public static final int cancel=0x7f04000a;
         public static final int choose_profile=0x7f040006;
+        public static final int directory_error=0x7f04000e;
         public static final int hello=0x7f040004;
         public static final int loginOptions=0x7f040009;
         public static final int ok=0x7f04000b;
         public static final int options=0x7f04000d;
         public static final int passwordHint=0x7f040001;
+        public static final int player_error=0x7f04000f;
         public static final int profiles_menu=0x7f040008;
         public static final int quit=0x7f040007;
         public static final int refresh=0x7f04000c;

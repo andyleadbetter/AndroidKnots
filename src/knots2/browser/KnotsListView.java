@@ -31,27 +31,33 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 public class KnotsListView extends Activity {
 
-	class DialogWrapper {
+	class DialogWrapper implements SeekBar.OnSeekBarChangeListener {
 		View base = null;
 		EditText passwordField = null;
 		EditText serverField = null;
 		EditText userField = null;
-		SeekBar limitField = null;
+		TextView limitField = null;
+		SeekBar  limitSeeker = null;
 
 		DialogWrapper(final View base, String server, String username, String password, int limit) {
 			this.base = base;
 			serverField = (EditText) base.findViewById(R.id.EditText_server);
 			userField = (EditText) base.findViewById(R.id.EditText_user);
 			passwordField = (EditText) base.findViewById(R.id.EditText_pw);
-			limitField = ( SeekBar ) base.findViewById(R.id.seekBarLimit);
-			limitField.setMax(500);	
-			limitField.setProgress(limit);
+			limitSeeker = ( SeekBar ) base.findViewById(R.id.seekBarLimit);
+			limitField = (TextView) base.findViewById(R.id.textView_counter);
+			limitSeeker.setOnSeekBarChangeListener(this);
+			limitSeeker.setMax(500);	
+			limitSeeker.setProgress(limit);
+			limitField.setText(Integer.toString(limit));
 			serverField.setText(server);
 			userField.setText(username);
 			passwordField.setText(password);
+			
 			
 		}
 
@@ -94,10 +100,27 @@ public class KnotsListView extends Activity {
 		}
 
 		private SeekBar getSeekField() {
-			if ( limitField == null) {
-				limitField = (SeekBar) base.findViewById(R.id.seekBarLimit);
+			if ( limitSeeker == null) {
+				limitSeeker = (SeekBar) base.findViewById(R.id.seekBarLimit);
 			}
-			return (limitField);
+			return (limitSeeker);
+		}
+
+		public void onProgressChanged(SeekBar seekBar, int progress,
+				boolean fromUser) {
+			if( fromUser )
+				limitField.setText(Integer.toString(progress));
+			
+		}
+
+		public void onStartTrackingTouch(SeekBar seekBar) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		public void onStopTrackingTouch(SeekBar seekBar) {
+			// TODO Auto-generated method stub
+			
 		}
 	}
 

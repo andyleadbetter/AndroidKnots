@@ -1,6 +1,7 @@
 package knots2.browser;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -28,6 +29,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.MediaController;
+import android.widget.Toast;
 
 public class KnotsPlayer extends Activity implements OnCompletionListener,
 		OnPreparedListener, OnErrorListener, OnBufferingUpdateListener,
@@ -39,21 +41,48 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 	private MediaController mPlayerController;
 	private PlayerProperties mPlayerProperties;
 	private ProgressDialog mProgressDialog;
+	
 	private final Runnable mUpdatePropertiesTask = new Runnable() {
 		public void run() {
 
 			final Thread updater = new Thread(mUpdatePropertiesThread);
 			updater.setPriority(Thread.MIN_PRIORITY);
 			updater.start();
-
+			// every 10 seconds hit the network for a full update.
 			mHandler.postDelayed(mUpdatePropertiesTask, 10000);
 		}
 	};
+	
+	private final Runnable mLocalUpdateTask = new Runnable() {
+		public void run() {
+
+			final Thread updater = new Thread(mLocalUpdateThread);
+			updater.setPriority(Thread.MIN_PRIORITY);
+			updater.start();
+			// every 10 seconds hit the network for a full update.
+			mHandler.postDelayed(mLocalUpdateTask, 1000);
+		}
+	};
+
 
 	private final Runnable mUpdatePropertiesThread = new Runnable() {
 
 		public void run() {
 			updateProperties();
+		}
+	};
+	
+	private final Runnable mLocalUpdateThread = new Runnable() {
+
+		public void run() {
+			
+			float duration = (float) mPlayerProperties.get_duration();
+			
+			// get the current position and add one to it, then work out what the 
+			// new percentage is.
+			float newPosition = ( duration * mPlayerProperties.get_position() ) + 1;
+						
+			mPlayerProperties.set_position( newPosition / duration );
 		}
 	};
 
@@ -202,6 +231,7 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 
 		} catch (final Exception e) {
 			e.printStackTrace();
+			showPlayerError(R.string.player_error);
 		}
 	}
 
@@ -237,10 +267,7 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 			
 			mApplication.setPlayerId(txtResult.split(":")[0]);
 			mApplication.setMediaPassword(txtResult.split(":")[1]);
-			
-
-			updateProperties();
-
+						
 			startPropertyUpdates();
 
 			mVideoView.setVideoURI(mPlayerProperties.get_streamUrl());
@@ -251,12 +278,19 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 
 		} catch (final Exception e) {
 			e.printStackTrace();
+			showPlayerError(R.string.player_error);
+			finish();
 		}
+		finally {			
+		}	
 	}
 
+
 	private void startPropertyUpdates() {
+		mHandler.removeCallbacks(mLocalUpdateTask);
+		mHandler.postDelayed(mLocalUpdateTask, 1000);		
 		mHandler.removeCallbacks(mUpdatePropertiesTask);
-		mHandler.postDelayed(mUpdatePropertiesTask, 5000);
+		mHandler.postDelayed(mUpdatePropertiesTask, 10000);
 	}
 
 	public void stopPlayer() {
@@ -278,15 +312,25 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 				Log.d(TAG, txtResult);
 			}				
 		} catch (final MalformedURLException e) {
-			Log.d(TAG, "Failed to stop video" + e.getMessage() );			
+			Log.d(TAG, "Failed to stop video" + e.getMessage() );
+			showPlayerError(R.string.player_error);
 			e.printStackTrace();
 		} catch (final Exception ex) {
+			showPlayerError(R.string.player_error);
 			ex.printStackTrace();
+		} finally {
+			finish();
 		}
+	}
+	
+	private void showPlayerError( int resourceString ) {
+		Toast errorPrompt = Toast.makeText(this,resourceString , 10);
+		errorPrompt.show();
 	}
 
 	private void stopPropertyUpdates() {
-		mHandler.removeCallbacks(mUpdatePropertiesTask);
+		mHandler.removeCallbacks(mLocalUpdateTask);
+		mHandler.removeCallbacks(mUpdatePropertiesTask);		
 	}
 
 	private void updateProperties() {
@@ -299,10 +343,12 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 		/* Create a URL we want to load some xml-data from. */
 		URL url;
 
+
 		try {
-
+			
 			url = new URL(path);
-
+			InputStream is = url.openStream();
+			
 			/* Get a SAXParser from the SAXPArserFactory. */
 			final SAXParserFactory spf = SAXParserFactory.newInstance();
 			final SAXParser sp = spf.newSAXParser();
@@ -317,19 +363,24 @@ public class KnotsPlayer extends Activity implements OnCompletionListener,
 			xr.setContentHandler(mPlayerProperties);
 
 			/* Parse the xml-data from our URL. */
-			xr.parse(new InputSource(url.openStream()));
+			is = url.openStream();
+			xr.parse(new InputSource(is));
+			
 
 		} catch (final MalformedURLException e) {
+			showPlayerError(R.string.player_error);
 			e.printStackTrace();
 		} catch (final SAXException e) {
+			showPlayerError(R.string.player_error);
 			e.printStackTrace();
 		} catch (final ParserConfigurationException e) {
+			showPlayerError(R.string.player_error);
 			e.printStackTrace();
 		} catch (final IOException e) {
+			showPlayerError(R.string.player_error);			
 			e.printStackTrace();
 		}
-		finally {
-			stopPropertyUpdates();
+		finally {			
 		}
 	}
 }

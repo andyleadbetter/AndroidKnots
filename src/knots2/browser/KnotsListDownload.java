@@ -18,6 +18,7 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 
 public class KnotsListDownload extends
@@ -55,6 +56,7 @@ KnotsListHandlerObserver {
 	private int mDialogStyle;
 	static final int SHOW_DIALOG_THRESHOLD = 32;
 	
+	private Exception mCaughtExpection = null;
 	
 	@Override
 	protected Void doInBackground(final Void... params) {
@@ -123,7 +125,9 @@ KnotsListHandlerObserver {
 		}
 
 		catch (final Exception e) {
-			/* Display any Error to the GUI. */
+			// we are an execution thread, so hold the exception,
+			mCaughtExpection = e;
+			
 		} finally {
 			urlConnection.disconnect();
 		}
@@ -145,6 +149,12 @@ KnotsListHandlerObserver {
 	protected void onPostExecute(final Void result) {
 		progressDialog.dismiss();
 		mArgs.mView.setProgressBarVisibility(false);
+		
+		// did we catch an exception.
+		if( mCaughtExpection != null ) {
+			Toast errorPrompt = Toast.makeText(mArgs.mView, R.string.directory_error , 10);
+			errorPrompt.show();
+		}
 	}
 
 	@Override
